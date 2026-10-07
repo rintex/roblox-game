@@ -123,8 +123,8 @@ local function weaponColor(weapon)
 	return Color3.fromRGB(weapon.Color[1], weapon.Color[2], weapon.Color[3])
 end
 
-local openButton = button(runtime, "InventoryButton", "Оружие", UDim2.fromOffset(122, 46), UDim2.new(1, -14, 0.58, 0))
-openButton.AnchorPoint = Vector2.new(1, 0.5)
+local openButton = button(runtime, "InventoryButton", "Арсенал", UDim2.fromOffset(132, 44), UDim2.new(0.5, 72, 1, -88))
+openButton.AnchorPoint = Vector2.new(0.5, 1)
 openButton.BackgroundColor3 = palette.panel
 make("UIStroke", { Color = palette.teal, Transparency = 0.25 }, openButton)
 
@@ -144,7 +144,7 @@ corner(panel, 18)
 label(panel, "Title", "АРСЕНАЛ", UDim2.new(1, -80, 0, 30), UDim2.fromOffset(16, 12), 20, palette.teal)
 local closeButton = button(panel, "Close", "×", UDim2.fromOffset(44, 44), UDim2.new(1, -54, 0, 8))
 closeButton.TextSize = 26
-label(panel, "Explanation", "Ищи ящики на карте: оружие из них бесплатное.", UDim2.new(1, -32, 0, 38), UDim2.fromOffset(16, 48), 13, palette.muted)
+label(panel, "Explanation", "Найди оружие в ящике и улучши его за монеты.", UDim2.new(1, -32, 0, 38), UDim2.fromOffset(16, 48), 13, palette.muted)
 local inventoryStatus = label(panel, "Status", "Загрузка коллекции…", UDim2.new(1, -32, 0, 26), UDim2.fromOffset(16, 87), 13, palette.teal)
 local list = make("ScrollingFrame", {
 	Name = "WeaponList", Position = UDim2.fromOffset(16, 122), Size = UDim2.new(1, -32, 1, -138),
@@ -154,31 +154,37 @@ local list = make("ScrollingFrame", {
 }, panel)
 make("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }, list)
 
-for index, weapon in ipairs(Config.Weapons) do
-	local color = weaponColor(weapon)
-	local card = make("Frame", {
-		Name = weapon.Id, Size = UDim2.new(1, -8, 0, 116), LayoutOrder = index,
-		BackgroundColor3 = palette.card, BorderSizePixel = 0, ZIndex = 13,
-	}, list)
+local function sendAction(command, id)
+	if not alive or player:GetAttribute("DataReady") ~= true or not actionRemote or not actionRemote.Parent then return end
+	local now = os.clock()
+	if now - lastEquipRequest < 0.4 then return end
+	lastEquipRequest = now
+	actionRemote:FireServer(command, id)
+end
+local function weaponCard(name, order, title, rarity, color)
+	local card = make("Frame", {Name = name, Size = UDim2.new(1, -8, 0, 172), LayoutOrder = order, BackgroundColor3 = palette.card, BorderSizePixel = 0, ZIndex = 13}, list)
 	corner(card, 12)
-	make("Frame", {
-		Name = "RarityStripe", Size = UDim2.new(0, 4, 1, -22), Position = UDim2.fromOffset(8, 11),
-		BackgroundColor3 = color, BorderSizePixel = 0, ZIndex = 14,
-	}, card)
-	label(card, "Name", weapon.Name, UDim2.new(1, -36, 0, 36), UDim2.fromOffset(20, 6), 15)
-	label(card, "Rarity", weapon.Rarity, UDim2.new(1, -36, 0, 20), UDim2.fromOffset(20, 43), 12, color)
-	local countLabel = label(card, "Count", "Ещё не найдено", UDim2.new(1, -154, 0, 38), UDim2.fromOffset(20, 68), 12, palette.muted)
-	local equip = button(card, "Equip", "Надеть", UDim2.fromOffset(116, 40), UDim2.new(1, -128, 0, 69))
-	equip.Visible = false
-	cards[weapon.Id] = { count = countLabel, equip = equip, color = color }
-	connect(equip.Activated, function()
-		if not alive or player:GetAttribute("DataReady") ~= true or not actionRemote or not actionRemote.Parent then return end
-		if (inventory[weapon.Id] or 0) < 1 or player:GetAttribute("EquippedWeapon") == weapon.Id then return end
-		local now = os.clock()
-		if now - lastEquipRequest < 0.4 then return end
-		lastEquipRequest = now
-		-- Цена, владение и реальные боевые свойства проверяются только сервером.
-		actionRemote:FireServer("EquipWeapon", weapon.Id)
+	make("Frame", {Name = "RarityStripe", Size = UDim2.new(0, 4, 1, -22), Position = UDim2.fromOffset(8, 11), BackgroundColor3 = color, BorderSizePixel = 0, ZIndex = 14}, card)
+	local heading = label(card, "Name", title, UDim2.new(1, -36, 0, 36), UDim2.fromOffset(20, 6), 15)
+	label(card, "Rarity", rarity, UDim2.new(1, -36, 0, 20), UDim2.fromOffset(20, 43), 12, color)
+	local count = label(card, "Count", "Ещё не найдено", UDim2.new(1, -36, 0, 44), UDim2.fromOffset(20, 65), 12, palette.muted)
+	local equip = button(card, "Equip", "Надеть", UDim2.new(0.38, -14, 0, 44), UDim2.new(0, 20, 1, -56))
+	local upgrade = button(card, "Upgrade", "Улучшить", UDim2.new(0.62, -22, 0, 44), UDim2.new(0.38, 12, 1, -56))
+	return {frame = card, title = heading, count = count, equip = equip, upgrade = upgrade, color = color}
+end
+local heroCard = weaponCard("HeroWeapon", 0, "Оружие героя", "СПОСОБНОСТЬ КОСТЮМА", palette.teal)
+local currentHeroKey = nil
+heroCard.frame.Visible = false
+connect(heroCard.upgrade.Activated, function() if currentHeroKey then sendAction("UpgradeWeapon", currentHeroKey) end end)
+connect(heroCard.equip.Activated, function() sendAction("EquipWeapon", "") end)
+for index, weapon in ipairs(Config.Weapons) do
+	local card = weaponCard(weapon.Id, index, weapon.Name, weapon.Rarity, weaponColor(weapon))
+	cards[weapon.Id] = card
+	connect(card.equip.Activated, function()
+		if (inventory[weapon.Id] or 0) > 0 and player:GetAttribute("EquippedWeapon") ~= weapon.Id then sendAction("EquipWeapon", weapon.Id) end
+	end)
+	connect(card.upgrade.Activated, function()
+		if (inventory[weapon.Id] or 0) > 0 then sendAction("UpgradeWeapon", "loot:" .. weapon.Id) end
 	end)
 end
 
@@ -243,6 +249,19 @@ connect(openButton.Activated, function()
 	panel.Visible = not panel.Visible
 	backdrop.Visible = panel.Visible
 end)
+-- Меню базы и арсенал не перекрывают друг друга на небольшом экране.
+task.spawn(function()
+	local main = playerGui:WaitForChild("TycoonHUD", 30)
+	local mainRuntime = main and main:WaitForChild("TycoonUIRuntime", 30)
+	local shopPanel = mainRuntime and mainRuntime:WaitForChild("ShopPanel", 30)
+	if not alive or not shopPanel then return end
+	local function syncMenu()
+		if shopPanel.Visible then closePanels() end
+		openButton.Visible = not shopPanel.Visible and player:GetAttribute("ObbyActive") ~= true
+	end
+	connect(shopPanel:GetPropertyChangedSignal("Visible"), syncMenu)
+	syncMenu()
+end)
 connect(resultButton.Activated, function()
 	if resultButton.Text == "Готово" then closePanels() else displayWinner() end
 end)
@@ -269,24 +288,50 @@ local function refreshInventory()
 	inventory = nextInventory
 	local ready = player:GetAttribute("DataReady") == true
 	local equipped = player:GetAttribute("EquippedWeapon")
-	for _, weapon in ipairs(Config.Weapons) do
-		local card = cards[weapon.Id]
-		local count = inventory[weapon.Id] or 0
-		local selected = count > 0 and equipped == weapon.Id
-		local canEquip = ready and actionRemote ~= nil and count > 0 and not selected
-		card.count.Text = if count > 0 then "Урон: " .. tostring(weapon.Damage) .. " · ×" .. tostring(count) else "Ещё не найдено"
-		card.equip.Visible = count > 0
+	local upgrades = {}
+	local rawUpgrades = player:GetAttribute("WeaponUpgrades")
+	if type(rawUpgrades) == "string" and #rawUpgrades <= 4096 then
+		local ok, decodedUpgrades = pcall(HttpService.JSONDecode, HttpService, rawUpgrades)
+		if ok and type(decodedUpgrades) == "table" then upgrades = decodedUpgrades end
+	end
+	local profileView = {WeaponUpgrades = upgrades, Floor = player:GetAttribute("Floor") or 0, Rebirths = player:GetAttribute("Rebirths") or 0}
+	local function refreshCard(card, definition, key, count, selected)
+		local level = Config.GetUpgradeLevel(profileView, key)
+		local stats = Config.WeaponStats(definition, level)
+		local cost = Config.WeaponUpgradeCosts[level + 1]
+		local owned = count > 0
+		local canEquip = ready and actionRemote ~= nil and owned and not selected
+		card.count.Text = if owned then "Урон " .. stats.Damage .. " · +" .. level .. "/5 · " .. string.format("%.2f", stats.Cooldown) .. " сек.\nКопий: " .. count else "Ищи бесплатные ящики на карте"
+		card.equip.Visible = owned
 		card.equip.Active = canEquip
 		card.equip.Selectable = canEquip
 		card.equip.AutoButtonColor = canEquip
-		card.equip.Text = if selected then "Надето" elseif ready and actionRemote then "Надеть" else "Подождите"
-		card.equip.BackgroundColor3 = if canEquip or selected then card.color else palette.panel
-		card.equip.TextColor3 = if canEquip or selected then palette.panel else palette.muted
+		card.equip.Text = if selected then "Надето" else "Надеть"
+		card.equip.BackgroundColor3 = if canEquip then card.color else palette.panel
+		card.equip.TextColor3 = if canEquip then palette.panel else palette.muted
+		card.upgrade.Visible = owned
+		card.upgrade.Active = ready and actionRemote ~= nil and cost ~= nil
+		card.upgrade.Selectable = card.upgrade.Active
+		card.upgrade.AutoButtonColor = card.upgrade.Active
+		card.upgrade.Text = if cost then "Улучшить · " .. cost else "Максимум +5"
+		card.upgrade.BackgroundColor3 = if cost then palette.teal else palette.panel
+		card.upgrade.TextColor3 = if cost then palette.panel else palette.muted
+	end
+	for _, weapon in ipairs(Config.Weapons) do
+		local count = inventory[weapon.Id] or 0
+		refreshCard(cards[weapon.Id], weapon, "loot:" .. weapon.Id, count, count > 0 and equipped == weapon.Id)
+	end
+	local hero = Config.GetHero(player:GetAttribute("EquippedHero"))
+	currentHeroKey = hero and "hero:" .. hero.Id or nil
+	heroCard.frame.Visible = hero ~= nil and Config.CanUseHero(profileView, hero)
+	if heroCard.frame.Visible then
+		heroCard.title.Text = hero.Weapon
+		refreshCard(heroCard, hero, currentHeroKey, 1, (equipped or "") == "")
 	end
 	inventoryStatus.Text = if not ready then "Загрузка прогресса…" elseif owned == 0 then "Коллекция пуста — найди первую поставку!" else "Найдено видов: " .. tostring(owned) .. " / " .. tostring(#Config.Weapons)
-	openButton.Text = "Оружие · " .. tostring(owned)
+	openButton.Text = "Арсенал · " .. tostring(owned)
 end
-for _, name in ipairs({ "WeaponInventory", "EquippedWeapon", "DataReady" }) do
+for _, name in ipairs({ "WeaponInventory", "EquippedWeapon", "EquippedHero", "WeaponUpgrades", "Floor", "Rebirths", "DataReady" }) do
 	connect(player:GetAttributeChangedSignal(name), refreshInventory)
 end
 refreshInventory()
@@ -306,21 +351,8 @@ local function refreshLayout()
 	revealName.Size = UDim2.new(1, -32, 0, if revealRarity.Visible then 50 else carouselHeight - 4)
 	revealName.Position = UDim2.fromOffset(16, if revealRarity.Visible then 10 else 2)
 	revealName.TextSize = if revealRarity.Visible then 20 else 16
-	-- Use the rendered guide bounds as well as screen size: safe insets on
-	-- a small portrait phone must not move the button over the base guide.
-	if size.Y > size.X then
-		local centerY = size.Y * 0.58
-		local mainGui = playerGui:FindFirstChild("TycoonHUD")
-		local mainRuntime = mainGui and mainGui:FindFirstChild("TycoonUIRuntime")
-		local guide = mainRuntime and mainRuntime:FindFirstChild("Guide")
-		if guide and guide:IsA("GuiObject") then
-			local guideBottom = guide.AbsolutePosition.Y + guide.AbsoluteSize.Y - runtime.AbsolutePosition.Y
-			centerY = math.max(centerY, guideBottom + 32)
-		end
-		openButton.Position = UDim2.new(1, -14, 0, math.min(centerY, size.Y - 36))
-	else
-		openButton.Position = UDim2.new(1, -14, 0.45, 0)
-	end
+	openButton.Position = UDim2.new(0.5, 72, 1, -88)
+
 end
 connect(runtime:GetPropertyChangedSignal("AbsoluteSize"), function() task.defer(refreshLayout) end)
 refreshLayout()

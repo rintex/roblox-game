@@ -1,4 +1,4 @@
--- A spacious campus shared by the twelve house plots, gallery and arena.
+-- A spacious campus shared by the six spacious house plots, gallery and arena.
 -- All geometry is anchored and uses simple Parts; no asset downloads needed.
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
@@ -47,8 +47,8 @@ makePart("Plaza", Vector3.new(72, 0.3, 72), Vector3.new(0, 0.15, 0), paving, Enu
 -- Roads stop at the plaza and continue through the public campus activities.
 makePart("NorthPath", Vector3.new(12, 0.2, 178), Vector3.new(0, 0.1, -125), paving, Enum.Material.Concrete)
 makePart("SouthPath", Vector3.new(12, 0.2, 178), Vector3.new(0, 0.1, 125), paving, Enum.Material.Concrete)
-makePart("WestPath", Vector3.new(178, 0.2, 12), Vector3.new(-125, 0.1, 0), paving, Enum.Material.Concrete)
-makePart("EastPath", Vector3.new(178, 0.2, 12), Vector3.new(125, 0.1, 0), paving, Enum.Material.Concrete)
+makePart("WestPath", Vector3.new(66, 0.2, 12), Vector3.new(-69, 0.1, 0), paving, Enum.Material.Concrete)
+makePart("EastPath", Vector3.new(66, 0.2, 12), Vector3.new(69, 0.1, 0), paving, Enum.Material.Concrete)
 
 for _, side in ipairs({ -1, 1 }) do
 	local suffix = if side < 0 then "West" else "East"
@@ -56,14 +56,14 @@ for _, side in ipairs({ -1, 1 }) do
 	makePart("PlazaTrim" .. (if side < 0 then "North" else "South"), Vector3.new(72, 0.05, 0.45), Vector3.new(0, 0.325, side * 35.5), cyan, Enum.Material.Neon, false)
 end
 
-local rows = { -170, -102, -34, 34, 102, 170 }
+local rows = { -156, 0, 156 }
 for rowIndex, rowZ in ipairs(rows) do
 	for _, side in ipairs({ -1, 1 }) do
 		local suffix = (if side < 0 then "West" else "East") .. rowIndex
-		makePart("HouseRoad" .. suffix, Vector3.new(148, 0.2, 6), Vector3.new(side * 74, 0.1, rowZ - 25), paving, Enum.Material.Concrete)
-		makePart("HouseEntry" .. suffix, Vector3.new(8, 0.2, 6), Vector3.new(side * 148, 0.1, rowZ - 22), paving, Enum.Material.Concrete)
-		makePart("RoadLamp" .. suffix, Vector3.new(0.65, 8, 0.65), Vector3.new(side * 110, 4, rowZ - 31), navy, Enum.Material.Metal)
-		local glow = makePart("RoadLampGlow" .. suffix, Vector3.new(1.6, 1.6, 1.6), Vector3.new(side * 110, 8.2, rowZ - 31), cyan, Enum.Material.Neon, false)
+		makePart("HouseRoad" .. suffix, Vector3.new(148, 0.2, 8), Vector3.new(side * 74, 0.1, rowZ - 39), paving, Enum.Material.Concrete)
+		makePart("HouseEntry" .. suffix, Vector3.new(12, 0.2, 9), Vector3.new(side * 148, 0.1, rowZ - 33), paving, Enum.Material.Concrete)
+		makePart("RoadLamp" .. suffix, Vector3.new(0.65, 8, 0.65), Vector3.new(side * 110, 4, rowZ - 45), navy, Enum.Material.Metal)
+		local glow = makePart("RoadLampGlow" .. suffix, Vector3.new(1.6, 1.6, 1.6), Vector3.new(side * 110, 8.2, rowZ - 45), cyan, Enum.Material.Neon, false)
 		glow.Shape = Enum.PartType.Ball
 	end
 end
@@ -169,4 +169,4 @@ color.Saturation = 0.1
 color.TintColor = Color3.fromRGB(255, 250, 242)
 
 map:SetAttribute("MapReady", true)
-print("Кампус готов: большая карта, площадь, дороги к 12 домам и StartSpawn.")
+print("Кампус готов: большая карта, площадь, дороги к шести домам и StartSpawn.")

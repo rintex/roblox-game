@@ -50,11 +50,25 @@ local GOLD = Color3.fromRGB(223, 177, 74)
 local BLUE = Color3.fromRGB(29, 64, 132)
 local GREEN = Color3.fromRGB(100, 166, 67)
 local CYAN = Color3.fromRGB(152, 242, 255)
+local function fabric(root, base)
+	-- Тонкое переплетение и швы рисуются в самом файле, без внешних asset ID.
+	for index = 1, 15 do
+		local stitch = rectangle(root, "WeaveV" .. index, index * 17, 128, 1, 256, base)
+		stitch.BackgroundTransparency = 0.86
+		local cross = rectangle(root, "WeaveH" .. index, 128, index * 17, 256, 1, base)
+		cross.BackgroundTransparency = 0.86
+	end
+	for _, side in ipairs({-1, 1}) do
+		local seam = line(root, "Seam" .. side, 128 + side * 99, 0, 128 + side * 77, 256, 2, WHITE)
+		seam.BackgroundTransparency = 0.78
+	end
+end
 function Style.Face(part, kind)
 	local color = if kind == "spider" then RED elseif kind == "symbiote" then BLACK
 		elseif kind == "iron" or kind == "iron_gold" then GOLD elseif kind == "hulk" then GREEN
 		else Color3.fromRGB(218, 174, 137)
 	local root = canvas(part, "CostumeFace", color)
+	if kind == "spider" or kind == "symbiote" then fabric(root, WHITE) end
 	if kind == "spider" or kind == "symbiote" then
 		local web = if kind == "spider" then BLACK else Color3.fromRGB(78, 82, 94)
 		for index = 1, 5 do
@@ -96,6 +110,7 @@ function Style.Chest(part, kind)
 	local color = if kind == "symbiote" then BLACK elseif kind == "hulk" then GREEN
 		elseif kind == "thor" then Color3.fromRGB(54, 62, 72) elseif kind == "iron_gold" then GOLD else RED
 	local root = canvas(part, "CostumeChest", color)
+	if kind == "spider" or kind == "symbiote" or kind == "thor" then fabric(root, WHITE) end
 	if kind == "spider" or kind == "symbiote" then
 		local emblem = if kind == "symbiote" then WHITE else BLACK
 		if kind == "spider" then
@@ -116,6 +131,13 @@ function Style.Chest(part, kind)
 			end
 		end
 	elseif kind == "iron" or kind == "iron_gold" then
+		for row = 1, 4 do
+			for _, side in ipairs({-1, 1}) do
+				local panel = rectangle(root, "ArmorSegment" .. row .. "_" .. side, 128 + side * 100, 36 + row * 43, 36, 35, Color3.fromRGB(132, 25, 30), side * 8)
+				panel.BackgroundTransparency = 0.25
+				circle(root, "Rivet" .. row .. "_" .. side, 128 + side * 99, 33 + row * 43, 5, GOLD)
+			end
+		end
 		for _, side in ipairs({ -1, 1 }) do
 			rectangle(root, "ChestPlate" .. side, 128 + side * 86, 69, 71, 101, GOLD, side * 12)
 			line(root, "Panel" .. side, 128 + side * 104, 162, 128 + side * 76, 232, 8, BLACK)

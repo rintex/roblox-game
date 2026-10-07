@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local Rules = require(script.Parent:WaitForChild("CombatRules"))
 local Style = require(script.Parent:WaitForChild("VisualStyle"))
+local EnemyAI = require(script.Parent:WaitForChild("EnemyAI"))
 
 local HeroCombatService = {}
 HeroCombatService.__index = HeroCombatService
@@ -77,10 +78,13 @@ end
 function HeroCombatService:_definition(profile)
 	local weaponId = profile.EquippedWeapon or ""
 	if weaponId ~= "" and Rules.OwnsWeapon(self.config, profile, weaponId) then
-		return self.config.GetWeapon(weaponId), "loot:" .. weaponId
+		local key = "loot:" .. weaponId
+		return self.config.WeaponStats(self.config.GetWeapon(weaponId), self.config.GetUpgradeLevel(profile, key)), key
 	end
 	local hero = self.config.GetHero(profile.EquippedHero or "")
-	if hero and self.config.CanUseHero(profile, hero) then return hero, hero.Id end
+	if hero and self.config.CanUseHero(profile, hero) then
+		return self.config.WeaponStats(hero, self.config.GetUpgradeLevel(profile, "hero:" .. hero.Id)), hero.Id
+	end
 	return nil
 end
 
@@ -250,6 +254,35 @@ function HeroCombatService:EquipWeapon(player, id)
 	return true, definition and ("Оружие «" .. definition.Name .. "» экипировано!") or "Выбрано оружие героя."
 end
 
+function HeroCombatService:UpgradeWeapon(player, key)
+	if type(key) ~= "string" or #key > 48 then return false, "Неизвестное оружие." end
+	local profile, reason = self:_equipReady(player)
+	if not profile then return false, reason end
+	local definition
+	local heroId = string.match(key, "^hero:(.+)$")
+	local weaponId = string.match(key, "^loot:(.+)$")
+	if heroId then
+		local hero = self.config.GetHero(heroId)
+		if hero and self.config.CanUseHero(profile, hero) then definition = hero end
+	elseif weaponId and Rules.OwnsWeapon(self.config, profile, weaponId) then
+		definition = self.config.GetWeapon(weaponId)
+	end
+	if not definition then return false, "Сначала откройте этого героя или получите оружие." end
+	local level = self.config.GetUpgradeLevel(profile, key)
+	local cost = self.config.WeaponUpgradeCosts[level + 1]
+	if not cost then return false, "Оружие уже улучшено до максимума." end
+	if profile.Coins < cost then return false, "Для улучшения нужно " .. cost .. " монет." end
+	-- Цена, уровень и характеристики серверные. Нет yield между проверкой и списанием.
+	profile.Coins -= cost
+	profile.WeaponUpgrades = profile.WeaponUpgrades or {}
+	profile.WeaponUpgrades[key] = level + 1
+	self.tycoon:SyncPlayer(player)
+	local _, equipped = self:_definition(profile)
+	if equipped == key or equipped == heroId then self:Refresh(player) end
+	local stats = self.config.WeaponStats(definition, level + 1)
+	return true, (definition.Weapon or definition.Name) .. " улучшено: +" .. (level + 1) .. ", урон " .. stats.Damage .. "!"
+end
+
 function HeroCombatService:_targetLabel(record)
 	record.model:SetAttribute("Health", record.health)
 	record.model:SetAttribute("Alive", not record.dead)
@@ -258,7 +291,9 @@ function HeroCombatService:_targetLabel(record)
 		if object:IsA("BasePart") then
 			object.Transparency = record.dead and 0.8 or 0
 			object.CanQuery = not record.dead
-			object.CanCollide = not record.dead
+			object.CanCollide = false
+			object.CanTouch = false
+			if object == record.warning then object.Transparency = 1; object.CanQuery = false end
 			for _, surface in ipairs(object:GetChildren()) do
 				if surface:IsA("SurfaceGui") then surface.Enabled = not record.dead end
 			end
@@ -327,8 +362,22 @@ function HeroCombatService:_buildTargets()
 			health = boss and 400 or 80, maxHealth = boss and 400 or 80,
 			coins = boss and 500 or 60, xp = boss and 200 or 40, respawn = boss and 30 or 8, dead = false,
 		}
+		record.home = chest.Position
+		record.ai = boss and self.config.Enemies.Boss or self.config.Enemies.Bandit
+		record.limbs = {}
+		for _, side in ipairs({-1, 1}) do
+			for _, prefix in ipairs({"Arm", "Hand", "Leg", "Shoe"}) do
+				local limb = model:FindFirstChild(prefix .. side)
+				table.insert(record.limbs, {part = limb, rest = chest.CFrame:ToObjectSpace(limb.CFrame), side = side, arm = prefix == "Arm" or prefix == "Hand"})
+			end
+		end
+		local warning = part(model, "AttackWarning", Vector3.new(record.ai.AttackRange * 2, 0.04, record.ai.AttackRange * 2), CFrame.new(position + Vector3.new(0, 0.3, 0)), Color3.fromRGB(255, 80, 65), Enum.Material.Neon)
+		warning.Transparency = 1
+		warning.CanCollide = false
+		warning.CanQuery = false
+		record.warning = warning
 		self.targets[model] = record
-		for _, object in ipairs(model:GetChildren()) do if object:IsA("BasePart") then self.targetParts[object] = record end end
+		for _, object in ipairs(model:GetChildren()) do if object:IsA("BasePart") and object ~= warning then self.targetParts[object] = record end end
 		self:_targetLabel(record)
 	end
 end
@@ -354,6 +403,7 @@ function HeroCombatService:_damageTarget(player, profile, record, damage, origin
 			record.health = record.maxHealth
 			record.dead = false
 			self:_targetLabel(record)
+			if self.enemyAI then self.enemyAI:Reset(record) end
 		end)
 	end
 	return true
@@ -400,7 +450,8 @@ function HeroCombatService:_attack(player, aim)
 	local character, _, root = liveCharacter(player)
 	local issued = self.issuedTools[player]
 	if not definition or not character or not issued or issued.Parent ~= character
-		or issued:GetAttribute("HeroWeapon") ~= id or player:GetAttribute("ObbyActive") == true or not Rules.InArena(root.Position) then return end
+		or issued:GetAttribute("HeroWeapon") ~= id or player:GetAttribute("ObbyActive") == true
+		or player:GetAttribute("ArenaCombatOptIn") ~= true or not Rules.InArena(root.Position) then return end
 	local origin = root.Position + Vector3.new(0, 1.5, 0)
 	local direction = Rules.CastDirection(origin, aim, definition.Range)
 	if not direction or now < (self.nextAttackAt[player] or -math.huge) then return end
@@ -487,6 +538,8 @@ function HeroCombatService:Start()
 	assert(not self.started, "HeroCombatService уже запущен")
 	self.started = true
 	self:_buildTargets()
+	self.enemyAI = EnemyAI.new(self)
+	self.enemyAI:Start()
 	if self.tycoon.SetPerkHandler then
 		self.tycoon:SetPerkHandler(function(player, humanoid, profile) self:ApplyPerks(player, humanoid, profile) end)
 	end
@@ -498,6 +551,7 @@ end
 
 function HeroCombatService:Destroy()
 	self.destroyed = true
+	if self.enemyAI then self.enemyAI:Destroy() end
 	for _, connection in ipairs(self.connections) do connection:Disconnect() end
 	for player in pairs(self.playerConnections) do self:_removePlayer(player) end
 	if self.targetFolder and self.targetFolder.Parent then self.targetFolder:Destroy() end

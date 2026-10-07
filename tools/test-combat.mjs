@@ -3,11 +3,13 @@
 import {readFile} from 'node:fs/promises';
 import {LuauState} from 'luau-web';
 
-const [config, rules, service, style] = await Promise.all([
+const [config, rules, service, style, ai, pads] = await Promise.all([
   readFile('src/shared/TycoonConfig.luau', 'utf8'),
   readFile('src/server/Modules/CombatRules.luau', 'utf8'),
   readFile('src/server/Modules/HeroCombatService.luau', 'utf8'),
   readFile('src/server/Modules/VisualStyle.luau', 'utf8'),
+  readFile('src/server/Modules/EnemyAI.luau', 'utf8'),
+  readFile('src/server/Modules/CostumePadService.luau', 'utf8'),
 ]);
 
 const mock = String.raw`
@@ -49,7 +51,10 @@ local function frame(x,y,z)
  return setmetatable({Position=type(x)=='table' and x or vector(x or 0,y or 0,z or 0)},frameMeta)
 end
 function frameMeta.__mul(a,b) return frame(a.Position+b.Position) end
-local CFrame={new=frame,Angles=function() return frame() end}
+function frameMeta.__index(self,key)
+ if key=='ToObjectSpace' then return function(a,b) return frame(b.Position-a.Position) end end
+end
+local CFrame={new=frame,lookAt=function(position) return frame(position) end,Angles=function() return frame() end}
 local Color3={fromRGB=function(r,g,b) return {R=r,G=g,B=b,Lerp=function(self) return self end} end}
 local UDim2={new=function(...) return {...} end,fromOffset=function() return {} end,fromScale=function() return {} end}
 local UDim={new=function(...) return {...} end}
@@ -102,6 +107,12 @@ function methods:Destroy()
  self.Destroyed=true; self.Parent=nil
  for _,child in ipairs(self:GetChildren()) do child:Destroy() end
 end
+function methods:PivotTo(value)
+ local origin=self.PrimaryPart.Position
+ for _,child in ipairs(self:GetChildren()) do
+  if child:IsA('BasePart') then child.CFrame=frame(value.Position+child.Position-origin) end
+ end
+end
 function methods:EquipTool(tool) tool.Parent=self.Parent end
 function methods:TakeDamage(amount) self.Health=math.max(0,self.Health-amount);self.DamageCalls=(self.DamageCalls or 0)+1 end
 local Players=Instance.new('Players')
@@ -111,6 +122,7 @@ function methods:GetPlayers() return playerList end
 function methods:GetPlayerFromCharacter(character)
  for _,player in ipairs(playerList) do if player.Character==character then return player end end
 end
+local RunService={Heartbeat=signal()}
 local Workspace=Instance.new('Workspace')
 local rayQueue={}
 local rayCount=0
@@ -123,15 +135,20 @@ end
 local game={GetService=function(_,name)
  if name=='Players' then return Players end
  if name=='Workspace' then return Workspace end
+ if name=='RunService' then return RunService end
  error(name)
 end}
 local Rules=(function() RULES_SOURCE end)()
 local Style=(function() STYLE_SOURCE end)()
 local script={Parent={WaitForChild=function(_,name) return name end}}
+local EnemyAI
 local function require(name)
  if name=='VisualStyle' then return Style end
+ if name=='EnemyAI' then return EnemyAI end
  assert(name=='CombatRules');return Rules
 end
+EnemyAI=(function() AI_SOURCE end)()
+local PadService=(function() PAD_SOURCE end)()
 local Service=(function() SERVICE_SOURCE end)()
 local profiles={records={},closing=false}
 function profiles:Get(player) return self.records[player] end
@@ -192,6 +209,7 @@ check('startup builds seven guarded targets and painted massless costume',functi
  local tool=service.issuedTools[a]
  assert(tool and tool.Parent==a.Character and tool:GetAttribute('HeroWeapon')=='arachna')
  assert(tool:FindFirstChild('Handle') and not tool:FindFirstChild('Handle').Anchored)
+ a:SetAttribute('ArenaCombatOptIn',true)
 end)
 local bot=service.targets[service.targetFolder:FindFirstChild('TrainingBot1')]
 local function queueHit(object) table.insert(rayQueue,{Instance=object,Position=object.Position}) end
@@ -293,6 +311,98 @@ check('reward caps and repeated dead damage',function()
  assert(damage==5 and killed and enemy.dead)
  local nextDamage,nextKilled=Rules.ApplyDamage(enemy,18);assert(nextDamage==0 and not nextKilled)
 end)
+check('weapon upgrades charge catalog price, increase actual damage and preserve attack cooldown',function()
+ profile.Floor=3;profile.Rebirths=0;profile.Coins=100000;profile.WeaponUpgrades={}
+ profile.EquippedHero='arachna';profile.EquippedWeapon='';service:Refresh(a)
+ local coins=profile.Coins
+ clock+=2;assert(not service:UpgradeWeapon(a,'hero:helios') and profile.Coins==coins)
+ clock+=2;assert(not service:UpgradeWeapon(a,'loot:arc_rifle') and profile.Coins==coins)
+ clock+=2;assert(not service:UpgradeWeapon(a,'unknown') and profile.Coins==coins)
+ clock+=2;local ok=service:UpgradeWeapon(a,'hero:arachna')
+ assert(ok and profile.Coins==coins-300 and profile.WeaponUpgrades['hero:arachna']==1)
+ assert(not service:UpgradeWeapon(a,'hero:arachna') and profile.WeaponUpgrades['hero:arachna']==1)
+ local stats=service:_definition(profile);assert(stats.Damage==22 and stats.Cooldown<Config.Heroes[1].Cooldown)
+ assert(Config.Heroes[1].Damage==18,'Never mutate catalog')
+ bot.dead=false;bot.health=80;a:SetAttribute('ArenaCombatOptIn',true);root.Position=vector(0,3,-100)
+ queueHit(bot.center);fire();assert(bot.health==58,'Attack must use upgraded server damage')
+ local attackAt=service.nextAttackAt[a]
+ clock+=0.4;assert(service:UpgradeWeapon(a,'hero:arachna'))
+ assert(service.nextAttackAt[a]==attackAt,'Upgrade cannot reset attack cooldown')
+ for _=3,5 do clock+=2;assert(service:UpgradeWeapon(a,'hero:arachna')) end
+ coins=profile.Coins;clock+=2;assert(not service:UpgradeWeapon(a,'hero:arachna') and profile.Coins==coins)
+ profile.Inventory.solar_lance=1;clock+=2;assert(service:UpgradeWeapon(a,'loot:solar_lance'))
+ clock+=2;assert(service:EquipWeapon(a,'solar_lance'));stats=service:_definition(profile);assert(stats.Damage==75)
+ profile.Coins=0;clock+=2;assert(not service:UpgradeWeapon(a,'loot:solar_lance') and profile.WeaponUpgrades['loot:solar_lance']==1)
+end)
+check('stepping on costume pad equips, rejects remote touches and throttles repeated body contacts',function()
+ local campus=Instance.new('Folder');campus.Parent=Workspace
+ local gallery=Instance.new('Folder');gallery.Name='Gallery';gallery.Parent=campus
+ local first=Instance.new('Model');first:SetAttribute('HeroId','arachna');first.Parent=gallery
+ local pad=makePart(first,'Pedestal',vector(42,0.3,-12),vector(8,0.6,8));pad.Touched=signal()
+ local second=Instance.new('Model');second:SetAttribute('HeroId','volt');second.Parent=gallery
+ local locked=makePart(second,'Pedestal',vector(55,0.3,-12),vector(8,0.6,8));locked.Touched=signal()
+ local servicePads=PadService.new(Config,service,campus);servicePads:Start()
+ profile.Floor=1;profile.Rebirths=0;profile.EquippedWeapon='solar_lance';humanoid.Health=100
+ root.Position=vector(0,3,0);clock+=2;pad.Touched:Fire(root);assert(profile.EquippedWeapon=='solar_lance')
+ root.Position=vector(42,3,-12);humanoid.Health=0;pad.Touched:Fire(root);assert(profile.EquippedWeapon=='solar_lance')
+ humanoid.Health=100;pad.Touched:Fire(root);assert(profile.EquippedHero=='arachna' and profile.EquippedWeapon=='')
+ local tool=service.issuedTools[a];pad.Touched:Fire(root);assert(service.issuedTools[a]==tool,'Body contacts must not reissue same tool')
+ root.Position=vector(55,3,-12);locked.Touched:Fire(root);assert(profile.EquippedHero=='arachna')
+ clock+=2;locked.Touched:Fire(root);assert(profile.EquippedHero=='arachna','Locked costume rejected')
+ profile.Floor=3;clock+=2;locked.Touched:Fire(root);assert(profile.EquippedHero=='volt')
+ root.Position=vector(42,30,-12);clock+=2;pad.Touched:Fire(root);assert(profile.EquippedHero=='volt','Flying over pad is not stepping')
+ servicePads:Destroy();root.Position=vector(42,3,-12);clock+=2;pad.Touched:Fire(root);assert(profile.EquippedHero=='volt')
+ campus:Destroy();root.Position=vector(0,3,-100)
+end)
+local ai=service.enemyAI
+local function readyEnemy()
+ table.clear(rayQueue);bot.dead=false;bot.health=80;ai:Reset(bot);bot.nextAttack=0;bot.pending=nil
+ humanoid.Health=100;broot.Position=vector(200,3,0);a:SetAttribute('ArenaCombatOptIn',true)
+ a:SetAttribute('DataReady',true);a:SetAttribute('ObbyActive',false)
+ root.Position=vector(-28,3,-100);ai.time=200
+end
+check('aggressive bot pursues nearest arena player at server speed',function()
+ readyEnemy();root.Position=vector(-10,3,-100)
+ ai:_step(bot,1)
+ assert(math.abs(bot.center.Position.X-(-23))<0.001 and bot.model:GetAttribute('State')=='Преследует')
+ assert(humanoid.Health==100 and bot.pending==nil)
+ a:SetAttribute('ArenaCombatOptIn',false);ai:_step(bot,1);assert(bot.center.Position.X==-30,'Return to home after opting out')
+end)
+check('NPC telegraphs before real damage and can kill player',function()
+ readyEnemy();humanoid.Health=10
+ local coins,kills=profile.Coins,profile.EnemiesDefeated
+ ai:_step(bot,0.1);assert(bot.pending and humanoid.Health==10 and bot.warning.Transparency==0.35)
+ ai.time+=0.4;ai:_step(bot,0.1);assert(humanoid.Health==10)
+ ai.time+=0.2;ai:_step(bot,0.1);assert(humanoid.Health==0 and bot.pending==nil and bot.warning.Transparency==1)
+ assert(profile.Coins==coins and profile.EnemiesDefeated==kills)
+ humanoid.Health=100;ai:_step(bot,0.1);assert(bot.pending==nil,'Attack cooldown is shared between targets')
+end)
+check('dodging, walls, ForceField, opt out and dead NPC prevent damage',function()
+ readyEnemy();ai:_step(bot,0.1);root.Position=vector(-10,3,-100);ai.time+=1;ai:_step(bot,0.1);assert(humanoid.Health==100)
+ readyEnemy();local wall=makePart(Workspace,'AIWall',vector(-29,3,-100));queueHit(wall);ai:_step(bot,0.1);assert(not bot.pending);wall:Destroy()
+ for _,reason in ipairs({'protected','optout','dead','notready','obby','outside'}) do
+  readyEnemy();ai:_step(bot,0.1);assert(bot.pending)
+  local field
+  if reason=='protected' then field=Instance.new('ForceField');field.Parent=a.Character
+  elseif reason=='optout' then a:SetAttribute('ArenaCombatOptIn',false)
+  elseif reason=='dead' then bot.dead=true
+  elseif reason=='notready' then a:SetAttribute('DataReady',false)
+  elseif reason=='obby' then a:SetAttribute('ObbyActive',true)
+  elseif reason=='outside' then root.Position=vector(-28,3,-70) end
+  ai.time+=1;ai:_step(bot,0.1);assert(humanoid.Health==100,reason)
+  if field then field:Destroy() end
+ end
+ readyEnemy();local boss=service.targets[service.targetFolder:FindFirstChild('ArenaSentinel')]
+ assert(boss.ai.Damage>bot.ai.Damage and boss.ai.Windup>bot.ai.Windup)
+end)
+check('AI pauses during shutdown and boss attack can kill',function()
+ readyEnemy();ai:_step(bot,0.1);profiles.closing=true;ai:Step(10);assert(humanoid.Health==100);profiles.closing=false
+ local boss=service.targets[service.targetFolder:FindFirstChild('ArenaSentinel')]
+ boss.dead=false;ai:Reset(boss);boss.nextAttack=0;root.Position=vector(2,3,-140);humanoid.Health=25
+ ai:_step(boss,0.1);assert(boss.pending and humanoid.Health==25)
+ ai.time+=1;ai:_step(boss,0.1);assert(humanoid.Health==0)
+ humanoid.Health=100;root.Position=vector(0,3,-100)
+end)
 check('appearance removal restores base colors and cleanup cancels delayed respawn',function()
  profile.EquippedHero='arachna';service:Refresh(a)
  clock+=1;assert(service:Equip(a,''));assert(not service.issuedTools[a] and not a.Character:FindFirstChild('HeroArmor'))
@@ -307,12 +417,12 @@ end)
 return checks
 `;
 
-const code = mock.replace('CONFIG_SOURCE', config).replace('RULES_SOURCE', rules).replace('STYLE_SOURCE', style).replace('SERVICE_SOURCE', service);
+const code = mock.replace('CONFIG_SOURCE', config).replace('RULES_SOURCE', rules).replace('STYLE_SOURCE', style).replace('AI_SOURCE', ai).replace('PAD_SOURCE', pads).replace('SERVICE_SOURCE', service);
 const state = await LuauState.createAsync();
 try {
   const run = state.loadstring(code, 'Combat server authority tests', true);
   const result = await run();
-  console.log(`Combat tests passed: ${result[0]} cases for issued tools, unlocks, inventory, aim, cooldown, PvE rewards, walls, range, PvP opt in, ForceField, appearance and cleanup.`);
+  console.log(`Combat tests passed: ${result[0]} cases for issued tools, unlocks, inventory, aim, cooldown, PvE rewards, walls, range, PvP opt in, ForceField, appearance, costume pads, saved weapon upgrades, NPC pursuit, telegraphed attacks, dodging, death and cleanup.`);
 } finally {
   state.destroy();
 }

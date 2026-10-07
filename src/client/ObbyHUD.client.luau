@@ -55,7 +55,8 @@ local function setOtherUI(visible)
   end
  end
  local inventory=playerGui:FindFirstChild('WeaponInventoryHUD');local inventoryRuntime=inventory and inventory:FindFirstChild('WeaponInventoryRuntime')
- local inventoryButton=inventoryRuntime and inventoryRuntime:FindFirstChild('InventoryButton');if inventoryButton then inventoryButton.Visible=visible end
+ local shopPanel=runtime and runtime:FindFirstChild('ShopPanel')
+ local inventoryButton=inventoryRuntime and inventoryRuntime:FindFirstChild('InventoryButton');if inventoryButton then inventoryButton.Visible=visible and not (shopPanel and shopPanel.Visible) end
  if inventoryRuntime and not visible then
   for _,name in ipairs({'InventoryPanel','LootReveal','Backdrop'}) do local value=inventoryRuntime:FindFirstChild(name);if value then value.Visible=false end end
  end

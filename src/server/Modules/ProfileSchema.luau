@@ -11,7 +11,7 @@ end
 function Schema.New(config)
 	return { Coins = config.StartingCoins, XP = 0, Floor = 0, DropperTier = 0, Bank = 0, BonusReadyAt = 0,
 		Rebirths = 0, EquippedHero = "", CollectedTotal = 0, EnemiesDefeated = 0, DailyReadyAt = 0, QuestClaims = {},
-		Inventory = {}, EquippedWeapon = "", ObbyReadyAt = 0, ObbyWins = 0, ObbyBestMilliseconds = 0 }
+		Inventory = {}, EquippedWeapon = "", WeaponUpgrades = {}, ObbyReadyAt = 0, ObbyWins = 0, ObbyBestMilliseconds = 0 }
 end
 
 function Schema.Normalize(data, config, now)
@@ -32,6 +32,18 @@ function Schema.Normalize(data, config, now)
 		if count > 0 then inventory[weapon.Id] = count end
 	end
 	local equippedWeapon = if type(data.EquippedWeapon) == "string" and inventory[data.EquippedWeapon] then data.EquippedWeapon else ""
+	local upgrades = {}
+	local savedUpgrades = if type(data.WeaponUpgrades) == "table" then data.WeaponUpgrades else {}
+	for _, heroDefinition in ipairs(config.Heroes or {}) do
+		local key = "hero:" .. heroDefinition.Id
+		local level = boundedInteger(savedUpgrades[key], 0, #config.WeaponUpgradeCosts)
+		if level > 0 then upgrades[key] = level end
+	end
+	for id in pairs(inventory) do
+		local key = "loot:" .. id
+		local level = boundedInteger(savedUpgrades[key], 0, #config.WeaponUpgradeCosts)
+		if level > 0 then upgrades[key] = level end
+	end
 	return {
 		Coins = boundedInteger(data.Coins, config.StartingCoins, config.MaxCoins),
 		XP = boundedInteger(data.XP, 0, config.MaxXP),
@@ -45,6 +57,7 @@ function Schema.Normalize(data, config, now)
 		DailyReadyAt = boundedInteger(data.DailyReadyAt, 0, now + (config.DailyCooldown or 86400)),
 		QuestClaims = claims,
 		Inventory = inventory, EquippedWeapon = equippedWeapon,
+		WeaponUpgrades = upgrades,
 		ObbyReadyAt = boundedInteger(data.ObbyReadyAt, 0, now + config.Obby.RewardCooldown),
 		ObbyWins = boundedInteger(data.ObbyWins, 0, config.MaxCoins),
 		ObbyBestMilliseconds = boundedInteger(data.ObbyBestMilliseconds, 0, config.Obby.MaximumRunSeconds * 1000),
@@ -56,6 +69,8 @@ function Schema.Copy(profile)
 	for id, claimed in pairs(profile.QuestClaims or {}) do if claimed == true then claims[id] = true end end
 	local inventory = {}
 	for id, count in pairs(profile.Inventory or {}) do inventory[id] = count end
+	local upgrades = {}
+	for id, level in pairs(profile.WeaponUpgrades or {}) do upgrades[id] = level end
 	return {
 		Coins = profile.Coins, XP = profile.XP, Floor = profile.Floor,
 		DropperTier = profile.DropperTier, Bank = profile.Bank, BonusReadyAt = profile.BonusReadyAt,
@@ -63,6 +78,7 @@ function Schema.Copy(profile)
 		CollectedTotal = profile.CollectedTotal or 0, EnemiesDefeated = profile.EnemiesDefeated or 0,
 		DailyReadyAt = profile.DailyReadyAt or 0, QuestClaims = claims,
 		Inventory = inventory, EquippedWeapon = profile.EquippedWeapon or "",
+		WeaponUpgrades = upgrades,
 		ObbyReadyAt = profile.ObbyReadyAt or 0, ObbyWins = profile.ObbyWins or 0, ObbyBestMilliseconds = profile.ObbyBestMilliseconds or 0,
 	}
 end

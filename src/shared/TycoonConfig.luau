@@ -43,6 +43,10 @@ local Config = {
   {Id='solar_lance',Name='Солнечное копьё',Rarity='Мифическое',LootWeight=1,Damage=60,Range=130,Cooldown=1.1,Kind='ray',Color={255,100,150}},
  },
  MaxWeaponCopies=99,
+ WeaponUpgradeCosts={300,800,1800,4000,9000},WeaponDamageStep=0.25,
+ Enemies={Bandit={Speed=7,AggroRange=26,AttackRange=5,Damage=12,Cooldown=1.6,Windup=0.5},
+  Boss={Speed=6,AggroRange=42,AttackRange=7,Damage=32,Cooldown=2.4,Windup=0.85}},
+ HouseScale=1.5,
  Airdrops={FirstDelay=20,MinInterval=90,MaxInterval=180,FallSeconds=7,Lifetime=90,DuplicateCoins=100,
   Locations={{X=-62,Z=58},{X=62,Z=58},{X=-70,Z=-55},{X=70,Z=-55},{X=0,Z=80}}},
  -- Replace zero only with genuine Game Pass IDs from your published experience.
@@ -54,7 +58,7 @@ local Config = {
  PlotLayout={},
  AdminUserIds={},
 }
-for _,z in ipairs({-170,-102,-34,34,102,170}) do
+for _,z in ipairs({-156,0,156}) do
  for _,x in ipairs({-148,148}) do table.insert(Config.PlotLayout,{X=x,Z=z}) end
 end
 function Config.GetLevel(xp) return 1+math.floor(xp/100) end
@@ -73,6 +77,17 @@ end
 function Config.GetWeapon(id)
  for _,weapon in ipairs(Config.Weapons) do if weapon.Id==id then return weapon end end
  return nil
+end
+function Config.GetUpgradeLevel(profile,key)
+ local level=(profile.WeaponUpgrades or {})[key]
+ if type(level)~='number' or level~=level or math.abs(level)==math.huge then return 0 end
+ return math.clamp(math.floor(level),0,#Config.WeaponUpgradeCosts)
+end
+function Config.WeaponStats(definition,level)
+ local stats=table.clone(definition)
+ stats.Damage=math.floor(definition.Damage*(1+level*Config.WeaponDamageStep))
+ stats.Cooldown=math.max(0.2,definition.Cooldown*(0.96^level))
+ return stats
 end
 function Config.CanUseHero(profile,hero)
  if type(profile)~='table' or type(hero)~='table' then return false end

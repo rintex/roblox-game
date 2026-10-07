@@ -85,7 +85,7 @@ end
 local function buildStands(campus, decor)
 	stand(campus, "DailyStand", Vector3.new(-20, 0.55, 18), GOLD, "ClaimDailyPrompt", "Получить подарок", "ЕЖЕДНЕВНЫЙ ПОДАРОК")
 	stand(campus, "QuestStand", Vector3.new(20, 0.55, 18), CYAN, "QuestPrompt", "Посмотреть задания", "ЗАДАНИЯ ГЕРОЯ")
-	stand(campus, "ArenaPortal", Vector3.new(0, 0.55, -43), Color3.fromRGB(240, 105, 104), "EnterArenaPrompt", "Войти в PvP", "PvP / БОЙ С ИГРОКАМИ И РОБОТАМИ")
+	stand(campus, "ArenaPortal", Vector3.new(0, 0.55, -43), Color3.fromRGB(240, 105, 104), "EnterArenaPrompt", "Войти на арену", "ОПАСНАЯ ЗОНА / БАНДИТЫ И PvP")
 	stand(campus, "ReturnStand", Vector3.new(35, 0.55, -88), CYAN, "ReturnPrompt", "Вернуться домой", "ВЕРНУТЬСЯ В БЕЗОПАСНУЮ ЗОНУ")
 	stand(campus, "RebirthStand", Vector3.new(-26, 0.55, 0), VIOLET, "RebirthPrompt", "Перерождение", "ПЕРЕРОЖДЕНИЕ")
 	gate(decor, "ArenaGate", 0, -47, Color3.fromRGB(240, 105, 104))
@@ -109,6 +109,7 @@ local function buildHero(gallery, definition, index)
 	local rgb = definition.Color
 	local color = Color3.fromRGB(rgb[1], rgb[2], rgb[3])
 	local base = part(model, "Pedestal", Vector3.new(8, 0.6, 8), origin + Vector3.new(0, 0.3, 0), DARK, Enum.Material.Concrete)
+	base.CanTouch = true
 	part(model, "PedestalGlow", Vector3.new(7.5, 0.08, 7.5), origin + Vector3.new(0, 0.64, 0), color, Enum.Material.Neon, false)
 	for _, side in ipairs({ -1, 1 }) do
 		local suffix = if side < 0 then "Left" else "Right"
@@ -140,7 +141,7 @@ local function buildHero(gallery, definition, index)
 	elseif index == 5 then
 		part(model, "ThorCape", Vector3.new(3.3, 3.9, 0.2), origin + Vector3.new(0, 3.6, 0.85), Color3.fromRGB(170, 35, 38), Enum.Material.Fabric, false)
 	end
-	label(base, "HeroLabel", definition.Name .. "\nВыбор: кнопка «Герои»", Vector3.new(0, 9, 0), 155, 52)
+	label(base, "HeroLabel", definition.Name .. "\nНаступи, чтобы надеть · " .. (if definition.MinRebirths > 0 then "Перерождений: " .. definition.MinRebirths else "Этаж: " .. definition.MinFloor), Vector3.new(0, 9, 0), 180, 60)
 end
 
 local function buildArena(campus)
@@ -166,7 +167,7 @@ local function buildArena(campus)
 		part(arena, "LampPost" .. index, Vector3.new(0.6, 9, 0.6), position, DARK, Enum.Material.Metal)
 		part(arena, "Lamp" .. index, Vector3.new(2, 0.6, 2), position + Vector3.new(0, 4.7, 0), CYAN, Enum.Material.Neon, false)
 	end
-	label(arena:FindFirstChild("Floor"), "ArenaLabel", "АРЕНА PvP\nБой с игроками и роботами", Vector3.new(0, 13, 0), 290, 60)
+	label(arena:FindFirstChild("Floor"), "ArenaLabel", "АРЕНА PvP\nБандиты атакуют · PvP включено", Vector3.new(0, 13, 0), 290, 60)
 end
 
 local function buildCityDecor(campus, config)

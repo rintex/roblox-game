@@ -136,6 +136,10 @@ function ProgressionService:_perform(player, context, command, id)
 		if not self.heroCombat or not self.heroCombat.EquipWeapon then return end
 		local ok, message = self.heroCombat:EquipWeapon(player, id)
 		response = outcome(ok == true, message or (ok and "Оружие выбрано!" or "Такого оружия нет в инвентаре."))
+	elseif command == "UpgradeWeapon" then
+		if not self.heroCombat then return end
+		local ok, message = self.heroCombat:UpgradeWeapon(player, id)
+		response = outcome(ok == true, message)
 	else
 		return
 	end
@@ -145,9 +149,9 @@ end
 
 function ProgressionService:_request(player, command, id)
 	-- Данные клиента лишь выбирают известное действие; цены и награды серверные.
-	local commands = { EquipHero = true, EquipWeapon = true, ClaimQuest = true, ClaimDaily = true, Rebirth = true }
+	local commands = { EquipHero = true, EquipWeapon = true, UpgradeWeapon = true, ClaimQuest = true, ClaimDaily = true, Rebirth = true }
 	if type(command) ~= "string" or not commands[command] then return end
-	if (command == "EquipHero" or command == "EquipWeapon" or command == "ClaimQuest") and (type(id) ~= "string" or #id > 40) then return end
+	if (command == "EquipHero" or command == "EquipWeapon" or command == "UpgradeWeapon" or command == "ClaimQuest") and (type(id) ~= "string" or #id > 48) then return end
 	local context = self:_context(player, nil, command == "Rebirth")
 	if context then self:_perform(player, context, command, id) end
 end

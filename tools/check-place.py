@@ -17,7 +17,7 @@ def child(item, target):
 
 workspace = child(place, 'Workspace')
 plots = child(workspace, 'TycoonPlots').findall('Item')
-assert len(plots) == 12
+assert len(plots) == 6
 for plot in plots:
     assert plot.attrib['class'] == 'Model'
     assert child(plot, 'Structure').attrib['class'] == 'Folder'
@@ -28,6 +28,7 @@ for plot in plots:
         assert instance.attrib['class'] == 'ProximityPrompt'
         assert props(instance)['Enabled'].text == ('true' if prompt == 'ClaimPrompt' else 'false')
     assert props(child(plot, 'BonusPad'))['Transparency'].text == '1'
+    assert float(props(child(plot, 'Base'))['size'].find('X').text) == 66
 
 campus = child(workspace, 'HeroCampus')
 for pad, prompt in [('DailyStand', 'ClaimDailyPrompt'), ('QuestStand', 'QuestPrompt'),
@@ -75,6 +76,7 @@ assert len(child(obby, 'Platforms').findall('Item')) == 16
 assert child(child(obby, 'StartStand'), 'StartObbyPrompt').attrib['class'] == 'ProximityPrompt'
 assert any(i.attrib['class'] == 'SurfaceGui' for i in items), 'Costume artwork missing'
 for hero in child(campus, 'Gallery').findall('Item'):
+    assert props(child(hero, 'Pedestal'))['CanTouch'].text == 'true'
     assert child(child(hero, 'Head'), 'CostumeFace').attrib['class'] == 'SurfaceGui'
     assert child(child(hero, 'Torso'), 'CostumeChest').attrib['class'] == 'SurfaceGui'
-print(f'Place validation passed: textured city, sixteen obby stages, twelve plots, costume surfaces, {expected_scripts} exact sources, {expected_remotes} remotes, HUD and camera.')
+print(f'Place validation passed: textured city, sixteen obby stages, six spacious plots, costume surfaces, {expected_scripts} exact sources, {expected_remotes} remotes, HUD and camera.')

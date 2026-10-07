@@ -89,6 +89,12 @@
         },
         "ObbyService": {
           "$path": "src/server/Modules/ObbyService.luau"
+        },
+        "EnemyAI": {
+          "$path": "src/server/Modules/EnemyAI.luau"
+        },
+        "CostumePadService": {
+          "$path": "src/server/Modules/CostumePadService.luau"
         }
       }
     },

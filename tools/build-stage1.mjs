@@ -84,7 +84,7 @@ assert(#registry == before, "Running Stage1Map again must not create duplicates"
 local config = (function()\n${configSource}\nend)()
 local world = (function()\n${worldSource}\nend)()
 local plots = world.BuildPlots(Workspace, config)
-assert(#plots == 12, "Expected twelve tycoon plots")
+assert(#plots == 6, "Expected six tycoon plots")
 local activeBefore = #Workspace:GetDescendants()
 world.BuildPlots(Workspace, config)
 assert(#Workspace:GetDescendants() == activeBefore, "Plot construction must be repeatable")
@@ -145,7 +145,7 @@ try {
 } finally {
   await rm(intermediate, { force: true });
 }
-console.log('Built build/QuarterHeroes.rbxlx and .rbxl: textured city, Marvel costumes, twelve plots, arena and rooftop obby.');
+console.log('Built build/QuarterHeroes.rbxlx and .rbxl: textured city, Marvel costumes, six spacious plots, arena and rooftop obby.');
 const preview = spawnSync('python3', [resolve(root, 'tools/preview-costumes.py')], { cwd: root, stdio: 'inherit' });
 if (preview.error) throw preview.error;
 if (preview.status !== 0) throw new Error('Costume preview export failed');

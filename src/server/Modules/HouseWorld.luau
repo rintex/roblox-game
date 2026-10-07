@@ -4,12 +4,9 @@ local World = {}
 local Style = require(script.Parent:WaitForChild("VisualStyle"))
 
 local DEFAULT_POSITIONS = {
-	Vector3.new(-148, 0, -170), Vector3.new(148, 0, -170),
-	Vector3.new(-148, 0, -102), Vector3.new(148, 0, -102),
-	Vector3.new(-148, 0, -34), Vector3.new(148, 0, -34),
-	Vector3.new(-148, 0, 34), Vector3.new(148, 0, 34),
-	Vector3.new(-148, 0, 102), Vector3.new(148, 0, 102),
-	Vector3.new(-148, 0, 170), Vector3.new(148, 0, 170),
+	Vector3.new(-148, 0, -156), Vector3.new(148, 0, -156),
+	Vector3.new(-148, 0, 0), Vector3.new(148, 0, 0),
+	Vector3.new(-148, 0, 156), Vector3.new(148, 0, 156),
 }
 
 local HOUSE_COLORS = {
@@ -37,7 +34,18 @@ local function child(parent, className, name)
 	return object
 end
 
+local function geometry(parent, size, position)
+	local plot = parent
+	while plot and plot:GetAttribute("GeometryScale") == nil do plot = plot.Parent end
+	if not plot then return size, position end
+	local scale = plot:GetAttribute("GeometryScale")
+	local origin = Vector3.new(plot:GetAttribute("OriginX"), 0, plot:GetAttribute("OriginZ"))
+	local offset = position - origin
+	return Vector3.new(size.X * scale, size.Y, size.Z * scale), origin + Vector3.new(offset.X * scale, offset.Y, offset.Z * scale)
+end
+
 local function part(parent, name, size, position, color, material, canCollide)
+	size, position = geometry(parent, size, position)
 	local object = child(parent, "Part", name)
 	object.Anchored = true
 	object.Size = size
@@ -240,6 +248,12 @@ function World.UpdatePlot(plot, floorNumber, ownerName)
 		part(structure, "FrontCornice" .. floor, Vector3.new(29, 0.5, 0.9), origin + Vector3.new(0, top + 10.75, -10), CREAM)
 		part(structure, "RearCornice" .. floor, Vector3.new(29, 0.5, 0.9), origin + Vector3.new(0, top + 10.75, 14), CREAM)
 		buildDropper(structure, origin, floor, top)
+		-- Stone frames, brickwork and timber floors use built-in Roblox textures.
+		for _, side in ipairs({-1, 1}) do
+			part(structure, "CornerTrim" .. floor .. "_" .. side, Vector3.new(0.6, 10.5, 0.8), origin + Vector3.new(side * 13.65, top + 5.25, -10.45), CREAM, Enum.Material.Concrete, false)
+			part(structure, "WindowSill" .. floor .. "_" .. side, Vector3.new(4, 0.25, 1.3), origin + Vector3.new(side * 5.5, top + 2.4, 14.3), CREAM, Enum.Material.Concrete, false)
+		end
+		part(structure, "InteriorRug" .. floor, Vector3.new(9, 0.04, 8), origin + Vector3.new(5, top + 0.03, 0), wallColor, Enum.Material.Fabric, false)
 		if floor >= 2 then
 			buildStairs(structure, origin, floor)
 		end
@@ -257,7 +271,8 @@ function World.UpdatePlot(plot, floorNumber, ownerName)
 	local bonusPad = plot:FindFirstChild("BonusPad")
 	if bonusPad then
 		bonusPad.Size = Vector3.new(1, 1, 0.35)
-		bonusPad.CFrame = CFrame.new(origin + Vector3.new(6, if floors == 3 then 26.7 else 0.55, if floors == 3 then 4 else -17))
+		local _, bonusPosition = geometry(plot, Vector3.new(1, 1, 0.35), origin + Vector3.new(6, if floors == 3 then 26.7 else 0.55, if floors == 3 then 4 else -17))
+		bonusPad.CFrame = CFrame.new(bonusPosition)
 		bonusPad.Transparency = 1
 		bonusPad.CanCollide = false
 		bonusPad.CanQuery = false
@@ -286,8 +301,16 @@ function World.BuildPlots(workspace, config)
 		end
 	end
 	local plots = {}
+	-- Обновление старого места с 12 участками тоже оставляет максимум шесть домов.
+	for _, existing in ipairs(folder:GetChildren()) do
+		local id = existing:GetAttribute("PlotId")
+		if existing:IsA("Model") and type(id) == "number" and id > #positions and string.match(existing.Name, "^Plot%d+$") then existing:Destroy() end
+	end
 	for index, origin in ipairs(positions) do
 		local plot = child(folder, "Model", "Plot" .. index)
+		plot:SetAttribute("GeometryScale", config and config.HouseScale or 1.5)
+		plot:SetAttribute("OriginX", origin.X)
+		plot:SetAttribute("OriginZ", origin.Z)
 		plot:SetAttribute("PlotId", index)
 		plot:SetAttribute("OwnerUserId", 0)
 		plot:SetAttribute("OwnerName", "")
@@ -298,6 +321,13 @@ function World.BuildPlots(workspace, config)
 		local base = part(plot, "Base", Vector3.new(44, 0.3, 44), origin + Vector3.new(0, 0.15, 0), Color3.fromRGB(166, 191, 144), Enum.Material.Grass)
 		plot.PrimaryPart = base
 		part(plot, "FrontWalk", Vector3.new(30, 0.1, 10), origin + Vector3.new(0, 0.35, -16), CREAM, Enum.Material.Concrete)
+		for _, side in ipairs({-1, 1}) do
+			part(plot, "GardenBed" .. side, Vector3.new(5, 0.6, 11), origin + Vector3.new(side * 18.5, 0.55, -8), DARK, Enum.Material.Slate)
+			for shrub = 1, 3 do
+				local bush = part(plot, "GardenShrub" .. side .. "_" .. shrub, Vector3.new(3.2, 2.1, 3.2), origin + Vector3.new(side * 18.5, 1.6, -14 + shrub * 3), Color3.fromRGB(65, 130, 84), Enum.Material.Grass, false)
+				bush.Shape = Enum.PartType.Ball
+			end
+		end
 		local claim = part(plot, "ClaimPad", Vector3.new(7, 0.3, 2.5), origin + Vector3.new(0, 0.6, -20), Color3.fromRGB(88, 231, 156), Enum.Material.Neon)
 		prompt(claim, "ClaimPrompt", "Занять", "Свободный дом", true)
 		pad(plot, origin, "Collector", -10.5, Color3.fromRGB(99, 222, 159), "CollectPrompt", "Забрать", "КОПИЛКА", false)

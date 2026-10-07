@@ -92,62 +92,25 @@ local function label(parent, name, text, size, position, fontSize, color)
 	}, parent)
 end
 
-local hud = make("Frame", {
-	Name = "Dashboard",
-	BackgroundColor3 = palette.panel,
-	BackgroundTransparency = 0.06,
-	BorderSizePixel = 0,
-	Position = UDim2.fromOffset(14, 12),
-	Size = UDim2.fromOffset(340, 232),
-}, runtime)
-corner(hud, 18)
-make("UIStroke", { Color = Color3.fromRGB(70, 89, 110), Transparency = 0.3 }, hud)
-local hudScale = make("UIScale", { Scale = 1 }, hud)
-label(hud, "Title", string.upper(Config.GameTitle), UDim2.fromOffset(206, 26), UDim2.fromOffset(16, 12), 17, palette.teal)
-local shopButton = make("TextButton", {
-	Name = "ShopButton",
-	Size = UDim2.fromOffset(96, 40),
-	Position = UDim2.fromOffset(228, 6),
-	BackgroundColor3 = palette.teal,
-	BorderSizePixel = 0,
-	Text = "Магазин",
-	TextColor3 = palette.panel,
-	TextSize = 14,
-	Font = Enum.Font.GothamBold,
-	AutoButtonColor = true,
-	ZIndex = 13,
-}, hud)
-corner(shopButton, 10)
-local coinsText = label(hud, "Coins", "Монеты: ...", UDim2.fromOffset(206, 30), UDim2.fromOffset(16, 48), 23, palette.gold)
+-- Компактный HUD: показатели сверху, две кнопки снизу. Карта остаётся видимой.
+local hud = make("Frame", {Name = "Dashboard", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0}, runtime)
+local wallet = make("Frame", {Name = "Wallet", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 10), Size = UDim2.fromOffset(350, 72), BackgroundColor3 = palette.panel, BackgroundTransparency = 0.12, BorderSizePixel = 0}, hud)
+corner(wallet, 16)
+make("UIStroke", {Color = Color3.fromRGB(87, 105, 126), Transparency = 0.5}, wallet)
+local hudScale = make("UIScale", {Scale = 1}, wallet)
+local coinsText = label(wallet, "Coins", "Монеты: ...", UDim2.fromOffset(216, 32), UDim2.fromOffset(16, 7), 22, palette.gold)
 coinsText.TextScaled = true
-make("UITextSizeConstraint", { MinTextSize = 12, MaxTextSize = 23 }, coinsText)
-local levelText = label(hud, "Level", "Уровень: ...", UDim2.fromOffset(110, 30), UDim2.fromOffset(218, 48), 14)
-levelText.TextScaled = true
-make("UITextSizeConstraint", { MinTextSize = 10, MaxTextSize = 14 }, levelText)
-local xpText = label(hud, "XP", "XP: 0", UDim2.fromOffset(310, 20), UDim2.fromOffset(16, 80), 12, palette.muted)
-make("Frame", {
-	Name = "Divider",
-	BorderSizePixel = 0,
-	BackgroundColor3 = Color3.fromRGB(64, 77, 97),
-	Size = UDim2.fromOffset(308, 1),
-	Position = UDim2.fromOffset(16, 106),
-}, hud)
-local houseText = label(hud, "House", "Дом: нет участка", UDim2.fromOffset(306, 22), UDim2.fromOffset(16, 112), 14)
-local bankText = label(hud, "Bank", "В кассе: 0  ·  Доход: 0/сек", UDim2.fromOffset(306, 24), UDim2.fromOffset(16, 138), 13, palette.blue)
-local heroText = label(hud, "Hero", "Герой: не выбран", UDim2.fromOffset(306, 24), UDim2.fromOffset(16, 166), 12, palette.teal)
-local saveText = label(hud, "SaveStatus", "Загрузка прогресса...", UDim2.fromOffset(306, 32), UDim2.fromOffset(16, 196), 11, palette.muted)
-
-local guide = make("Frame", {
-	Name = "Guide",
-	BackgroundColor3 = palette.panel,
-	BackgroundTransparency = 0.18,
-	BorderSizePixel = 0,
-	Position = UDim2.fromOffset(14, 256),
-	Size = UDim2.fromOffset(340, 70),
-}, runtime)
-corner(guide, 12)
-local guideScale = make("UIScale", { Scale = 1 }, guide)
-local guideText = label(guide, "Instructions", "Займи участок: подойди к зелёной площадке и нажми E или кнопку на экране.", UDim2.new(1, -28, 1, -16), UDim2.fromOffset(14, 8), 12, palette.text)
+make("UITextSizeConstraint", {MinTextSize = 12, MaxTextSize = 22}, coinsText)
+local levelText = label(wallet, "Level", "Ур. ...", UDim2.fromOffset(100, 32), UDim2.fromOffset(234, 7), 15, palette.text)
+local xpText = label(wallet, "XP", "0 / 100 XP", UDim2.fromOffset(220, 19), UDim2.fromOffset(16, 40), 11, palette.muted)
+local healthText = label(wallet, "Health", "100 HP", UDim2.fromOffset(94, 19), UDim2.fromOffset(240, 40), 11, palette.teal)
+local xpTrack = make("Frame", {Name = "XPTrack", Position = UDim2.fromOffset(16, 63), Size = UDim2.fromOffset(318, 3), BackgroundColor3 = palette.card, BorderSizePixel = 0}, wallet)
+corner(xpTrack, 2)
+local xpFill = make("Frame", {Name = "XPFill", Size = UDim2.fromScale(0, 1), BackgroundColor3 = palette.teal, BorderSizePixel = 0}, xpTrack)
+corner(xpFill, 2)
+local shopButton = make("TextButton", {Name = "ShopButton", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, -72, 1, -88), Size = UDim2.fromOffset(132, 44), BackgroundColor3 = palette.panel, BackgroundTransparency = 0.08, BorderSizePixel = 0, Text = "База и герои", TextColor3 = palette.text, TextSize = 14, Font = Enum.Font.GothamBold, ZIndex = 3}, hud)
+corner(shopButton, 12)
+make("UIStroke", {Color = palette.teal, Transparency = 0.45}, shopButton)
 
 local overlay = make("TextButton", {
 	Name = "ShopBackdrop",
@@ -172,8 +135,8 @@ local shop = make("Frame", {
 }, runtime)
 corner(shop, 20)
 local shopScale = make("UIScale", { Scale = 1 }, shop)
-label(shop, "Title", "Твоя база. Твой герой.", UDim2.new(1, -84, 0, 30), UDim2.fromOffset(20, 16), 22, palette.teal)
-local shopIntro = label(shop, "Intro", "Строй, открывай героев и побеждай противников на арене.", UDim2.new(1, -40, 0, 32), UDim2.fromOffset(20, 50), 13, palette.muted)
+label(shop, "Title", "Квартал", UDim2.new(1, -84, 0, 30), UDim2.fromOffset(20, 16), 22, palette.teal)
+local shopIntro = label(shop, "Intro", "Дом, костюмы и награды — всё здесь.", UDim2.new(1, -40, 0, 32), UDim2.fromOffset(20, 50), 13, palette.muted)
 local closeButton = make("TextButton", {
 	Name = "Close",
 	Size = UDim2.fromOffset(44, 44),
@@ -227,6 +190,14 @@ local function shopCard(name, order, height, parent)
 	return title, detail, card
 end
 
+local _, _, statusCard = shopCard("BaseStatus", 0, 185)
+statusCard.Title.Text = "ТВОЙ КВАРТАЛ"
+statusCard.Detail:Destroy()
+local houseText = label(statusCard, "House", "", UDim2.new(1, -28, 0, 22), UDim2.fromOffset(14, 37), 14)
+local bankText = label(statusCard, "Bank", "", UDim2.new(1, -28, 0, 22), UDim2.fromOffset(14, 61), 13, palette.blue)
+local heroText = label(statusCard, "Hero", "", UDim2.new(1, -28, 0, 32), UDim2.fromOffset(14, 85), 12, palette.teal)
+local saveText = label(statusCard, "SaveStatus", "", UDim2.new(1, -28, 0, 26), UDim2.fromOffset(14, 119), 11, palette.muted)
+local guideText = label(statusCard, "Instructions", "", UDim2.new(1, -28, 0, 32), UDim2.fromOffset(14, 146), 11, palette.muted)
 local floorTitle, floorDetail = shopCard("FloorUpgrade", 1, 114)
 local dropperTitle, dropperDetail = shopCard("GeneratorUpgrade", 2, 114)
 local bonusTitle, bonusDetail = shopCard("ThirdFloorBonus", 3, 132)
@@ -399,8 +370,13 @@ local function update()
 	end
 	local coins, level = stat("Coins"), stat("Level")
 	coinsText.Text = coins and ("Монеты: " .. format(coins)) or "Монеты: ..."
-	levelText.Text = level and ("Уровень: " .. format(level)) or "Уровень: ..."
-	xpText.Text = "Опыт: " .. format(attribute("XP")) .. " XP · получай монеты, чтобы расти"
+	levelText.Text = level and ("Ур. " .. format(level)) or "Ур. ..."
+	xpText.Text = format(attribute("XP") % 100) .. " / 100 XP"
+	xpFill.Size = UDim2.fromScale((attribute("XP") % 100) / 100, 1)
+	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	local health = humanoid and math.ceil(humanoid.Health) or 0
+	healthText.Text = health .. " HP"
+	healthText.TextColor3 = if health <= 30 then palette.red else palette.teal
 	houseText.Text = if plotId > 0 then ("Участок №" .. plotId .. "  ·  Этажи: " .. floor .. "/3") else "Дом: выбери свободный участок"
 	bankText.Text = "В кассе: " .. format(attribute("Bank")) .. "  ·  Доход: " .. format(attribute("Income")) .. "/сек"
 	heroText.Text = "Герой: " .. equippedName .. " · Перерождений: " .. format(rebirths)
@@ -434,7 +410,7 @@ local function update()
 	elseif floor == 0 then
 		guideText.Text = "Построй первый этаж: подойди к синей площадке. Цена: " .. format(Config.Floors[1].Cost) .. " монет."
 	elseif floor < 3 then
-		guideText.Text = "Собирай зелёную кассу, строй этажи. В меню → «Герои» выбери героя и сражайся на арене."
+		guideText.Text = "Собирай зелёную кассу, строй этажи. Наступи на стенд костюма и сражайся на арене."
 	else
 		guideText.Text = "Сундук на третьем этаже даёт бонусы. Меню → «Прогресс»: задания, награды и перерождения."
 	end
@@ -637,17 +613,24 @@ local function resize()
 		return
 	end
 	local viewport = camera.ViewportSize
-	local dashboardScale = math.min(1, math.max(0.1, (viewport.X - 28) / 340), math.max(0.1, (viewport.Y - 160) / 326))
-	hudScale.Scale = dashboardScale
-	guideScale.Scale = dashboardScale
-	guide.Position = UDim2.fromOffset(14, 12 + 244 * dashboardScale)
+	hudScale.Scale = math.min(1, math.max(0.1, (viewport.X - 28) / 350))
 	local modalScale = math.min(1, math.max(0.1, (viewport.X - 28) / 320))
 	shopScale.Scale = modalScale
 	-- On a phone in landscape, shorten the scrolling area instead of
 	-- shrinking every label and touch target to an unreadable size.
 	shop.Size = UDim2.fromOffset(math.min(500, (viewport.X - 28) / modalScale), math.min(610, math.max(250, (viewport.Y - 90) / modalScale)))
+	local compact = shop.Size.Y.Offset < 420
+	shopIntro.Visible = not compact
+	for index, definition in ipairs(tabDefinitions) do
+		local tab = tabs[definition[1]]
+		tab.button.Position = UDim2.new((index - 1) * 0.25, 20 - (index - 1) * 8, 0, if compact then 58 else 90)
+		tab.list.Position = UDim2.fromOffset(20, if compact then 108 else 148)
+		tab.list.Size = UDim2.new(1, -40, 1, if compact then -154 else -208)
+	end
+	shopFooter.Position = UDim2.new(0, 20, 1, if compact then -40 else -48)
+	shopFooter.Size = UDim2.new(1, -40, 0, if compact then 28 else 38)
 	toastScale.Scale = math.min(1, math.max(0.1, (viewport.X - 28) / 380))
-	toast.Position = if viewport.X > 780 then UDim2.new(0.5, 0, 0, 16) else UDim2.new(0.5, 0, 0, 12 + 330 * dashboardScale)
+	toast.Position = UDim2.new(0.5, 0, 0, 92)
 end
 
 local function bindCamera()
@@ -663,11 +646,26 @@ end
 connect(Workspace:GetPropertyChangedSignal("CurrentCamera"), bindCamera)
 bindCamera()
 
+local healthConnection = nil
+local function bindHealth(character)
+	if healthConnection then healthConnection:Disconnect(); healthConnection = nil end
+	task.spawn(function()
+		local humanoid = character:WaitForChild("Humanoid", 10)
+		if alive and humanoid and player.Character == character then
+			healthConnection = humanoid.HealthChanged:Connect(update)
+			update()
+		end
+	end)
+end
+connect(player.CharacterAdded, bindHealth)
+if player.Character then bindHealth(player.Character) end
+
 local function cleanup()
 	if not alive then
 		return
 	end
 	alive = false
+	if healthConnection then healthConnection:Disconnect() end
 	if toastTween then
 		toastTween:Cancel()
 	end

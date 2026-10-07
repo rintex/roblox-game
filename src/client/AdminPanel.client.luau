@@ -57,7 +57,7 @@ local function text(parent, name, value, size, position, fontSize, color)
 end
 
 local toggle = make("TextButton", {
-	Name = "AdminButton", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -92),
+	Name = "AdminButton", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -144),
 	Size = UDim2.fromOffset(110, 42), BackgroundColor3 = panelColor, BorderSizePixel = 0,
 	Text = "Админ", TextColor3 = accent, TextSize = 15, Font = Enum.Font.GothamBold,
 }, gui)
