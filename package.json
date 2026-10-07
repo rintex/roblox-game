@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node tools/build-stage1.mjs"
+    "build": "node tools/build-stage1.mjs",
+    "test": "node tools/check-luau.mjs && node tools/test-tycoon.mjs && node tools/test-profiles.mjs && python3 tools/check-place.py"
   },
   "devDependencies": {
     "luau-web": "1.5.0"

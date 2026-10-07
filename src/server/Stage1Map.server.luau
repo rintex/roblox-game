@@ -54,10 +54,10 @@ makePart("WestBorder", Vector3.new(2, 4, 176), Vector3.new(-89, 2, 0), borderCol
 makePart("EastBorder", Vector3.new(2, 4, 176), Vector3.new(89, 2, 0), borderColor, Enum.Material.Slate)
 
 local treePositions = {
-	Vector3.new(-35, 0, -35), Vector3.new(35, 0, -35),
-	Vector3.new(-35, 0, 35), Vector3.new(35, 0, 35),
-	Vector3.new(-65, 0, -55), Vector3.new(65, 0, -55),
-	Vector3.new(-65, 0, 55), Vector3.new(65, 0, 55),
+	Vector3.new(-77, 0, -77), Vector3.new(77, 0, -77),
+	Vector3.new(-77, 0, 77), Vector3.new(77, 0, 77),
+	Vector3.new(-77, 0, -30), Vector3.new(77, 0, -30),
+	Vector3.new(-77, 0, 30), Vector3.new(77, 0, 30),
 }
 
 for index, position in ipairs(treePositions) do
@@ -68,8 +68,8 @@ for index, position in ipairs(treePositions) do
 end
 
 local rockPositions = {
-	Vector3.new(-52, 1.5, -28), Vector3.new(52, 1.5, -28),
-	Vector3.new(-52, 1.5, 28), Vector3.new(52, 1.5, 28),
+	Vector3.new(-77, 1.5, -10), Vector3.new(77, 1.5, -10),
+	Vector3.new(-77, 1.5, 10), Vector3.new(77, 1.5, 10),
 }
 
 for index, position in ipairs(rockPositions) do
@@ -108,4 +108,5 @@ Lighting.GlobalShadows = true
 Lighting.Ambient = Color3.fromRGB(110, 120, 135)
 Lighting.OutdoorAmbient = Color3.fromRGB(150, 155, 160)
 
-print("Этап 1 готов: карта SimulatorMap и точка появления StartSpawn.")
+map:SetAttribute("MapReady", true)
+print("Карта готова: SimulatorMap и точка появления StartSpawn.")

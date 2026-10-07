@@ -2,10 +2,44 @@
   "name": "RobloxGame",
   "tree": {
     "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Shared": {
+        "$className": "Folder",
+        "TycoonConfig": { "$path": "src/shared/TycoonConfig.luau" }
+      },
+      "TycoonRemotes": {
+        "$className": "Folder",
+        "Notice": { "$className": "RemoteEvent" }
+      }
+    },
     "ServerScriptService": {
       "$className": "ServerScriptService",
       "Stage1Map": {
         "$path": "src/server/Stage1Map.server.luau"
+      },
+      "TycoonServer": { "$path": "src/server/TycoonServer.server.luau" },
+      "Modules": {
+        "$className": "Folder",
+        "HouseWorld": { "$path": "src/server/Modules/HouseWorld.luau" },
+        "TycoonService": { "$path": "src/server/Modules/TycoonService.luau" },
+        "ProfileService": { "$path": "src/server/Modules/ProfileService.luau" },
+        "ProfileSchema": { "$path": "src/server/Modules/ProfileSchema.luau" }
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "TycoonUI": { "$path": "src/client/TycoonUI.client.luau" },
+        "DropperEffects": { "$path": "src/client/DropperEffects.client.luau" }
+      }
+    },
+    "StarterGui": {
+      "$className": "StarterGui",
+      "TycoonHUD": {
+        "$className": "ScreenGui",
+        "$properties": { "ResetOnSpawn": false, "IgnoreGuiInset": false }
       }
     }
   }

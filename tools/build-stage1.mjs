@@ -1,4 +1,4 @@
-// Build a ready-to-open place by running the real Stage1Map script in Luau.
+// Build the ready-to-open house tycoon from its actual Luau geometry modules.
 // The small mock generates static properties only; Studio must verify gameplay.
 import { readFile, writeFile, mkdir, rm } from 'node:fs/promises';
 import { dirname, isAbsolute, resolve } from 'node:path';
@@ -56,10 +56,12 @@ function cameraFrame(position, target) {
   ];
 }
 
-const [source, environment, projectText] = await Promise.all([
+const [source, environment, projectText, worldSource, configSource] = await Promise.all([
   readFile(resolve(root, 'src/server/Stage1Map.server.luau'), 'utf8'),
   readFile(resolve(root, 'tools/map-environment.luau'), 'utf8'),
   readFile(resolve(root, 'default.project.json'), 'utf8'),
+  readFile(resolve(root, 'src/server/Modules/HouseWorld.luau'), 'utf8'),
+  readFile(resolve(root, 'src/shared/TycoonConfig.luau'), 'utf8'),
 ]);
 const state = await LuauState.createAsync();
 let baked;
@@ -69,7 +71,21 @@ generateMap()
 local before = #registry
 generateMap()
 assert(#registry == before, "Running Stage1Map again must not create duplicates")
-return exportMap()`, 'Stage1 place builder', true);
+local config = (function()\n${configSource}\nend)()
+local world = (function()\n${worldSource}\nend)()
+local plots = world.BuildPlots(Workspace, config)
+assert(#plots == 4, "Expected four tycoon plots")
+local activeBefore = #Workspace:GetDescendants()
+world.BuildPlots(Workspace, config)
+assert(#Workspace:GetDescendants() == activeBefore, "Plot construction must be repeatable")
+for floor = 1,3 do
+ local structure = world.UpdatePlot(plots[1], floor, "Geometry check")
+ assert(structure:FindFirstChild("Floor" .. floor), "Purchased floor missing")
+ assert(structure:FindFirstChild("Dropper" .. floor), "Purchased generator missing")
+ if floor==3 then assert(structure:FindFirstChild("BonusChest"), "Third floor bonus missing") end
+end
+world.UpdatePlot(plots[1], 0, "")
+return exportMap()`, 'House tycoon place builder', true);
   const result = await execute();
   baked = plainValue(result[0]);
 } finally {
@@ -97,7 +113,7 @@ const intermediate = resolve(outputDirectory, 'stage1.generated.project.json');
 try {
   await writeFile(intermediate, `${JSON.stringify(project, null, 2)}\n`);
   for (const extension of ['rbxlx', 'rbxl']) {
-    const output = resolve(outputDirectory, `Stage1.${extension}`);
+    const output = resolve(outputDirectory, `HouseTycoon.${extension}`);
     const result = spawnSync(rojo, ['build', intermediate, '--output', output], {
       cwd: root,
       stdio: 'inherit',
@@ -108,4 +124,4 @@ try {
 } finally {
   await rm(intermediate, { force: true });
 }
-console.log('Built build/Stage1.rbxlx and build/Stage1.rbxl: 30 anchored map Parts, one StartSpawn, and the server Script.');
+console.log('Built build/HouseTycoon.rbxlx and build/HouseTycoon.rbxl: four plots, server modules, and client HUD.');
