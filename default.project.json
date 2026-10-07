@@ -1,0 +1,12 @@
+{
+  "name": "RobloxGame",
+  "tree": {
+    "$className": "DataModel",
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "Stage1Map": {
+        "$path": "src/server/Stage1Map.server.luau"
+      }
+    }
+  }
+}
