@@ -70,11 +70,13 @@ check('new profile and saved round trip',function()
  assert(data.Coins==75 and p.attrs.PersistenceMode=='saved')
  data.Coins=444; data.Floor=2;data.DropperTier=1;data.Bank=34;data.XP=140;data.BonusReadyAt=1000100
  data.Inventory.arc_rifle=2;data.EquippedWeapon='arc_rifle';data.QuestClaims.collector=true
+ data.ObbyWins=3;data.ObbyReadyAt=1000150;data.ObbyBestMilliseconds=21500
  assert(s:Save(p));assert(store.data.Player_1.Data.Coins==444)
  assert(s:Release(p));assert(store.data.Player_1.Session==nil)
  local s2=Service.new(Config);local p2=player(1);local restored=s2:Load(p2)
  assert(restored.Coins==444 and restored.Floor==2 and restored.Bank==34 and restored.XP==140)
  assert(restored.Inventory.arc_rifle==2 and restored.EquippedWeapon=='arc_rifle' and restored.QuestClaims.collector)
+ assert(restored.ObbyWins==3 and restored.ObbyReadyAt==1000150 and restored.ObbyBestMilliseconds==21500)
  assert(s2:Release(p2))
 end)
 check('different servers and same-server reconnects cannot share a lock',function()
@@ -104,6 +106,7 @@ check('legacy profiles preserve progress and start with an empty inventory',func
  local old=Schema.Normalize({Coins=800,XP=230,Floor=2,DropperTier=3,Bank=55},Config,os.time())
  assert(old.Coins==800 and old.XP==230 and old.Floor==2 and old.Bank==55)
  assert(old.Rebirths==0 and next(old.Inventory)==nil and old.EquippedWeapon=='' and next(old.QuestClaims)==nil)
+ assert(old.ObbyReadyAt==0 and old.ObbyWins==0 and old.ObbyBestMilliseconds==0)
 end)
 check('inventory accepts known owned weapons and bounds copies',function()
  local checked=Schema.Normalize({Floor=1,EquippedHero='helios',EquippedWeapon='arc_rifle',

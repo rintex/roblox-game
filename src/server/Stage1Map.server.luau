@@ -2,6 +2,7 @@
 -- All geometry is anchored and uses simple Parts; no asset downloads needed.
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
+local Style = require(script.Parent:WaitForChild("Modules"):WaitForChild("VisualStyle"))
 
 local map = Workspace:FindFirstChild("SimulatorMap")
 if map then
@@ -27,6 +28,7 @@ local function makePart(name, size, position, color, material, canCollide)
 	object.CFrame = CFrame.new(position)
 	object.Color = color
 	object.Material = material
+	Style.Material(object)
 	object.Shape = Enum.PartType.Block
 	object.TopSurface = Enum.SurfaceType.Smooth
 	object.BottomSurface = Enum.SurfaceType.Smooth

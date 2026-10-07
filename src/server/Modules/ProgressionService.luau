@@ -199,7 +199,7 @@ function ProgressionService:Start()
 			context.root.CFrame = CFrame.new(0, 5, -98)
 			context.root.AssemblyLinearVelocity = Vector3.zero
 			context.root.AssemblyAngularVelocity = Vector3.zero
-			self:_notify(player, { kind = "info", text = "Арена: выберите героя и атакуйте тренировочных врагов!" })
+			self:_notify(player, { kind = "info", text = "Арена: выберите героя и сражайтесь с бандитами и другими игроками!" })
 		end
 	end)
 	self:_bindPrompt(self.worldFolder, "ReturnStand", "ReturnPrompt", function(player, prompt)

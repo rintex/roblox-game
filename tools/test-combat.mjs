@@ -3,10 +3,11 @@
 import {readFile} from 'node:fs/promises';
 import {LuauState} from 'luau-web';
 
-const [config, rules, service] = await Promise.all([
+const [config, rules, service, style] = await Promise.all([
   readFile('src/shared/TycoonConfig.luau', 'utf8'),
   readFile('src/server/Modules/CombatRules.luau', 'utf8'),
   readFile('src/server/Modules/HeroCombatService.luau', 'utf8'),
+  readFile('src/server/Modules/VisualStyle.luau', 'utf8'),
 ]);
 
 const mock = String.raw`
@@ -50,8 +51,12 @@ end
 function frameMeta.__mul(a,b) return frame(a.Position+b.Position) end
 local CFrame={new=frame,Angles=function() return frame() end}
 local Color3={fromRGB=function(r,g,b) return {R=r,G=g,B=b,Lerp=function(self) return self end} end}
-local UDim2={fromOffset=function() return {} end,fromScale=function() return {} end}
-local Enum={Material={Metal='Metal',Neon='Neon',Glass='Glass'},SurfaceType={Smooth='Smooth'},
+local UDim2={new=function(...) return {...} end,fromOffset=function() return {} end,fromScale=function() return {} end}
+local UDim={new=function(...) return {...} end}
+local Vector2={new=function(x,y) return {X=x,Y=y} end}
+local Enum={Material={Metal='Metal',Neon='Neon',Glass='Glass',Fabric='Fabric',SmoothPlastic='SmoothPlastic'},SurfaceType={Smooth='Smooth'},
+ NormalId={Front='Front',Back='Back'},SurfaceGuiSizingMode={FixedSize='FixedSize'},PartType={Ball='Ball'},
+ ZIndexBehavior={Sibling='Sibling'},
  Font={GothamBold='GothamBold'},RaycastFilterType={Exclude='Exclude'}}
 local RaycastParams={new=function() return {} end}
 local methods={}
@@ -121,8 +126,12 @@ local game={GetService=function(_,name)
  error(name)
 end}
 local Rules=(function() RULES_SOURCE end)()
+local Style=(function() STYLE_SOURCE end)()
 local script={Parent={WaitForChild=function(_,name) return name end}}
-local function require(name) assert(name=='CombatRules');return Rules end
+local function require(name)
+ if name=='VisualStyle' then return Style end
+ assert(name=='CombatRules');return Rules
+end
 local Service=(function() SERVICE_SOURCE end)()
 local profiles={records={},closing=false}
 function profiles:Get(player) return self.records[player] end
@@ -148,6 +157,9 @@ local function makePlayer(id)
  local humanoid=Instance.new('Humanoid');humanoid.Health=100;humanoid.WalkSpeed=16;humanoid.Parent=char
  local colors=Instance.new('BodyColors');colors.Parent=char
  for _,name in ipairs({'HeadColor3','TorsoColor3','LeftArmColor3','RightArmColor3','LeftLegColor3','RightLegColor3'}) do colors[name]=Color3.fromRGB(220,200,180) end
+ local shirt=Instance.new('Shirt');shirt.ShirtTemplate='saved-shirt';shirt.Parent=char
+ local pants=Instance.new('Pants');pants.PantsTemplate='saved-pants';pants.Parent=char
+ local face=Instance.new('Decal');face.Transparency=0;face.Parent=head
  local backpack=Instance.new('Backpack');backpack.Parent=p
  table.insert(playerList,p)
  local profile={Coins=75,XP=0,Floor=1,Rebirths=0,EquippedHero='arachna',EquippedWeapon='',Inventory={},EnemiesDefeated=0}
@@ -168,11 +180,14 @@ check('finite aim and server range',function()
  assert(direction and direction.Magnitude==100)
  assert(not Rules.CooldownReady(1,0,math.huge))
 end)
-check('startup builds seven guarded targets and original massless costume',function()
+check('startup builds seven guarded targets and painted massless costume',function()
  service:Start()
  local targets=0;for _ in pairs(service.targets) do targets+=1 end
  assert(targets==7 and service.targetFolder.Parent==Workspace and tycoon.perkHandler)
- local armor=a.Character:FindFirstChild('HeroArmor');assert(armor and #armor:GetChildren()>=8)
+ local armor=a.Character:FindFirstChild('HeroArmor');assert(armor)
+ assert(armor:FindFirstChild('CostumeHead'):FindFirstChild('CostumeFace'))
+ assert(armor:FindFirstChild('ChestArmor'):FindFirstChild('CostumeChest'))
+ assert(a.Character:FindFirstChildOfClass('Shirt').ShirtTemplate=='')
  for _,piece in ipairs(armor:GetChildren()) do assert(piece.Massless and not piece.Anchored and not piece.CanCollide) end
  local tool=service.issuedTools[a]
  assert(tool and tool.Parent==a.Character and tool:GetAttribute('HeroWeapon')=='arachna')
@@ -282,6 +297,9 @@ check('appearance removal restores base colors and cleanup cancels delayed respa
  profile.EquippedHero='arachna';service:Refresh(a)
  clock+=1;assert(service:Equip(a,''));assert(not service.issuedTools[a] and not a.Character:FindFirstChild('HeroArmor'))
  assert(baseColors.HeadColor3.R==220 and baseColors.TorsoColor3.R==220)
+ assert(a.Character:FindFirstChildOfClass('Shirt').ShirtTemplate=='saved-shirt')
+ assert(a.Character:FindFirstChildOfClass('Pants').PantsTemplate=='saved-pants')
+ assert(a.Character:FindFirstChild('Head'):FindFirstChildOfClass('Decal').Transparency==0)
  a:SetAttribute('ArenaCombatOptIn',true);a.CharacterAdded:Fire(a.Character);assert(a:GetAttribute('ArenaCombatOptIn')==false)
  service:Destroy();assert(not service.targetFolder.Parent and not service.issuedTools[b])
  delayed[1][2]();assert(service.destroyed)
@@ -289,7 +307,7 @@ end)
 return checks
 `;
 
-const code = mock.replace('CONFIG_SOURCE', config).replace('RULES_SOURCE', rules).replace('SERVICE_SOURCE', service);
+const code = mock.replace('CONFIG_SOURCE', config).replace('RULES_SOURCE', rules).replace('STYLE_SOURCE', style).replace('SERVICE_SOURCE', service);
 const state = await LuauState.createAsync();
 try {
   const run = state.loadstring(code, 'Combat server authority tests', true);

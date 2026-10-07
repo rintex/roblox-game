@@ -2,6 +2,7 @@
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local Rules = require(script.Parent:WaitForChild("CombatRules"))
+local Style = require(script.Parent:WaitForChild("VisualStyle"))
 
 local HeroCombatService = {}
 HeroCombatService.__index = HeroCombatService
@@ -91,6 +92,9 @@ function HeroCombatService:_clearAppearance(player)
 		if old.created then old.colors:Destroy()
 		else for name, value in pairs(old.original) do old.colors[name] = value end end
 	end
+	for _, change in ipairs(old.modified or {}) do
+		if change.object.Parent then change.object[change.property] = change.value end
+	end
 	self.appearances[player] = nil
 end
 
@@ -101,49 +105,59 @@ function HeroCombatService:_removeTool(player)
 end
 
 function HeroCombatService:_costume(player, character, hero)
-	self:_clearAppearance(player)
-	if not hero then return end
-	local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
-	local head = character:FindFirstChild("Head")
-	if not torso or not torso:IsA("BasePart") or not head or not head:IsA("BasePart") then return end
-	local accent = colorFor(hero)
-	local dark = Color3.fromRGB(25, 32, 48)
-	local colors = character:FindFirstChildOfClass("BodyColors")
-	local created = colors == nil
-	if not colors then colors = Instance.new("BodyColors"); colors.Parent = character end
-	local original = {}
-	for _, name in ipairs(BODY_COLORS) do original[name] = colors[name]; colors[name] = dark end
-	colors.HeadColor3 = accent:Lerp(dark, 0.6)
-	local folder = Instance.new("Folder")
-	folder.Name = "HeroArmor"
-	folder.Parent = character
-	self.appearances[player] = { folder = folder, colors = colors, original = original, created = created }
-	local chestWidth = math.clamp(torso.Size.X * 0.85, 1, 2.2)
-	local chestHeight = math.clamp(torso.Size.Y * 0.85, 0.7, 1.8)
-	local front = -torso.Size.Z / 2 - 0.12
-	attach(folder, torso, "ChestArmor", Vector3.new(chestWidth, chestHeight, 0.22), CFrame.new(0, 0, front), dark)
-	attach(folder, torso, "EnergyCore", Vector3.new(0.46, 0.46, 0.16), CFrame.new(0, 0.06, front - 0.19) * CFrame.Angles(0, 0, math.pi / 4), accent, Enum.Material.Neon)
-	attach(folder, torso, "ChestTrimLeft", Vector3.new(0.12, chestHeight * 0.8, 0.13), CFrame.new(-chestWidth * 0.38, 0, front - 0.16), accent, Enum.Material.Neon)
-	attach(folder, torso, "ChestTrimRight", Vector3.new(0.12, chestHeight * 0.8, 0.13), CFrame.new(chestWidth * 0.38, 0, front - 0.16), accent, Enum.Material.Neon)
-	for _, side in ipairs({ -1, 1 }) do
-		attach(folder, torso, side == -1 and "LeftPauldron" or "RightPauldron", Vector3.new(0.55, 0.35, 0.75), CFrame.new(side * (torso.Size.X / 2 + 0.16), torso.Size.Y * 0.32, 0), accent, Enum.Material.Metal)
-	end
-	local visorZ = -head.Size.Z / 2 - 0.09
-	attach(folder, head, "VisorFrame", Vector3.new(head.Size.X * 0.85, 0.32, 0.14), CFrame.new(0, 0.06, visorZ), dark)
-	attach(folder, head, "EnergyVisor", Vector3.new(head.Size.X * 0.70, 0.12, 0.09), CFrame.new(0, 0.06, visorZ - 0.10), accent, Enum.Material.Neon)
-	if hero.Id == "titan" then
-		attach(folder, torso, "GravityPack", Vector3.new(1.25, 1.25, 0.5), CFrame.new(0, 0, torso.Size.Z / 2 + 0.3), accent)
-	elseif hero.Id == "helios" then
-		for _, side in ipairs({ -1, 1 }) do
-			attach(folder, torso, "SolarFin" .. side, Vector3.new(0.2, 1.5, 1.0), CFrame.new(side * 0.7, 0.35, torso.Size.Z / 2 + 0.55) * CFrame.Angles(0, 0, side * -0.45), accent, Enum.Material.Neon)
-		end
-	elseif hero.Id == "frost" then
-		attach(folder, torso, "CryoCell", Vector3.new(0.65, 0.65, 0.4), CFrame.new(0, 0.2, torso.Size.Z / 2 + 0.3) * CFrame.Angles(0, 0, math.pi / 4), Color3.fromRGB(180, 240, 255), Enum.Material.Glass)
-	elseif hero.Id == "volt" then
-		attach(folder, torso, "ArcSpine", Vector3.new(0.3, 1.3, 0.3), CFrame.new(0, 0.1, torso.Size.Z / 2 + 0.3), accent, Enum.Material.Neon)
-	elseif hero.Id == "nightweaver" then
-		attach(folder, torso, "StealthPack", Vector3.new(1.15, 1.05, 0.3), CFrame.new(0, 0, torso.Size.Z / 2 + 0.2), dark)
-	end
+ self:_clearAppearance(player)
+ if not hero then return end
+ local torso=character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
+ local head=character:FindFirstChild("Head")
+ if not torso or not torso:IsA("BasePart") or not head or not head:IsA("BasePart") then return end
+ local kind=hero.Style
+ local accent=colorFor(hero)
+ local gold=Color3.fromRGB(223,177,74)
+ local dark=Color3.fromRGB(25,31,43)
+ local colors=character:FindFirstChildOfClass("BodyColors")
+ local created=colors==nil
+ if not colors then colors=Instance.new("BodyColors");colors.Parent=character end
+ local original={}
+ for _,name in ipairs(BODY_COLORS) do original[name]=colors[name];colors[name]=accent end
+ if kind=="spider" then colors.LeftLegColor3=Color3.fromRGB(29,64,132);colors.RightLegColor3=colors.LeftLegColor3
+ elseif kind=="hulk" then colors.LeftLegColor3=Color3.fromRGB(95,55,141);colors.RightLegColor3=colors.LeftLegColor3
+ elseif kind=="thor" then colors.HeadColor3=Color3.fromRGB(218,174,137) end
+ local folder=Instance.new("Folder");folder.Name="HeroArmor";folder.Parent=character
+ local appearance={folder=folder,colors=colors,original=original,created=created,modified={}}
+ self.appearances[player]=appearance
+ local function hide(object,property,value)
+  table.insert(appearance.modified,{object=object,property=property,value=object[property]})
+  object[property]=value
+ end
+ -- Keep the player's avatar recoverable when the costume changes or is removed.
+ for _,object in ipairs(character:GetChildren()) do
+  if object:IsA("Shirt") then hide(object,"ShirtTemplate","")
+  elseif object:IsA("Pants") then hide(object,"PantsTemplate","")
+  elseif object:IsA("ShirtGraphic") then hide(object,"Graphic","")
+  elseif object:IsA("Accessory") then
+   local handle=object:FindFirstChild("Handle");if handle and handle:IsA("BasePart") then hide(handle,"Transparency",1) end
+  end
+ end
+ for _,object in ipairs(head:GetChildren()) do if object:IsA("Decal") then hide(object,"Transparency",1) end end
+ local material=if kind=="iron" or kind=="iron_gold" or kind=="thor" then Enum.Material.Metal else Enum.Material.Fabric
+ local chest=attach(folder,torso,"ChestArmor",Vector3.new(torso.Size.X*1.02,torso.Size.Y*1.02,0.16),CFrame.new(0,0,-torso.Size.Z/2-0.10),accent,material)
+ Style.Chest(chest,kind)
+ local helmetColor=if kind=="iron" or kind=="iron_gold" then gold elseif kind=="thor" then colors.HeadColor3 else accent
+ local mask=attach(folder,head,"CostumeHead",head.Size*1.03,CFrame.new(),helmetColor,material)
+ Style.Face(mask,kind)
+ if kind=="iron" or kind=="iron_gold" then
+  attach(folder,torso,"EnergyCore",Vector3.new(0.35,0.35,0.08),CFrame.new(0,torso.Size.Y*0.1,-torso.Size.Z/2-0.23),Color3.fromRGB(192,251,255),Enum.Material.Neon,Enum.PartType.Ball)
+  for _,side in ipairs({-1,1}) do
+   attach(folder,torso,"ShoulderArmor"..side,Vector3.new(0.65,0.45,0.8),CFrame.new(side*(torso.Size.X/2+0.2),torso.Size.Y*0.3,0),gold,Enum.Material.Metal)
+   attach(folder,torso,"Thruster"..side,Vector3.new(0.3,0.8,0.3),CFrame.new(side*0.6,0,torso.Size.Z/2+0.18),accent,Enum.Material.Metal)
+  end
+ elseif kind=="hulk" then
+  for _,side in ipairs({-1,1}) do
+   attach(folder,torso,"MuscleShoulder"..side,Vector3.new(0.95,0.8,1),CFrame.new(side*(torso.Size.X/2+0.27),torso.Size.Y*0.28,0),accent,Enum.Material.SmoothPlastic,Enum.PartType.Ball)
+  end
+ elseif kind=="thor" then
+  attach(folder,torso,"RedCape",Vector3.new(torso.Size.X*1.2,torso.Size.Y*1.8,0.15),CFrame.new(0,-torso.Size.Y*0.2,torso.Size.Z/2+0.18),Color3.fromRGB(170,35,38),Enum.Material.Fabric)
+ end
 end
 
 function HeroCombatService:_giveTool(player, definition, id)
@@ -165,7 +179,10 @@ function HeroCombatService:_giveTool(player, definition, id)
 	handle.CanTouch = false
 	handle.CanQuery = false
 	handle.Massless = true
-	if definition.Kind == "slam" then
+	if definition.Id == "titan" then
+		handle.Transparency = 1
+		attach(tool, handle, "HulkFist", Vector3.new(0.8, 0.8, 0.8), CFrame.new(0, 0.5, 0), accent, Enum.Material.SmoothPlastic)
+	elseif definition.Kind == "slam" or definition.Style == "thor" then
 		attach(tool, handle, "GravityHead", Vector3.new(1.6, 0.7, 0.7), CFrame.new(0, 0.8, 0), accent)
 		attach(tool, handle, "GravityCore", Vector3.new(0.4, 0.8, 0.78), CFrame.new(0, 0.8, 0), accent, Enum.Material.Neon)
 	else
@@ -179,6 +196,7 @@ function HeroCombatService:_giveTool(player, definition, id)
 end
 
 function HeroCombatService:ApplyPerks(player, humanoid, profile)
+	if player:GetAttribute("ObbyActive") == true then humanoid.WalkSpeed = self.config.Obby.WalkSpeed; return end
 	local speed = (profile.Floor >= 3 or (profile.Rebirths or 0) > 0) and self.config.ThirdFloorWalkSpeed or self.config.DefaultWalkSpeed
 	local hero = self.config.GetHero(profile.EquippedHero or "")
 	if hero and self.config.CanUseHero(profile, hero) then speed = math.max(speed, hero.WalkSpeed or speed) end
@@ -241,6 +259,9 @@ function HeroCombatService:_targetLabel(record)
 			object.Transparency = record.dead and 0.8 or 0
 			object.CanQuery = not record.dead
 			object.CanCollide = not record.dead
+			for _, surface in ipairs(object:GetChildren()) do
+				if surface:IsA("SurfaceGui") then surface.Enabled = not record.dead end
+			end
 		end
 	end
 end
@@ -267,15 +288,23 @@ function HeroCombatService:_buildTargets()
 		local model = Instance.new("Model")
 		model.Name = boss and "ArenaSentinel" or "TrainingBot" .. index
 		model.Parent = folder
-		local accent = boss and Color3.fromRGB(255, 130, 80) or Color3.fromRGB(80, 195, 235)
-		local scale = boss and 1.45 or 1
-		local chest = part(model, "Core", Vector3.new(3, 3, 2) * scale, CFrame.new(position + Vector3.new(0, 3.7 * scale, 0)), Color3.fromRGB(54, 64, 83))
-		part(model, "Head", Vector3.new(2, 1.6, 1.7) * scale, CFrame.new(position + Vector3.new(0, 6 * scale, 0)), accent)
-		part(model, "EnergyCell", Vector3.new(1.1, 1.1, 0.15) * scale, CFrame.new(position + Vector3.new(0, 3.9 * scale, -1.1 * scale)) * CFrame.Angles(0, 0, math.pi / 4), accent, Enum.Material.Neon)
-		for _, side in ipairs({ -1, 1 }) do
-			part(model, "Arm" .. side, Vector3.new(0.8, 2.8, 1) * scale, CFrame.new(position + Vector3.new(side * 2 * scale, 3.6 * scale, 0)), accent)
-			part(model, "Leg" .. side, Vector3.new(0.9, 2.2, 1) * scale, CFrame.new(position + Vector3.new(side * 0.8 * scale, 1.1 * scale, 0)), Color3.fromRGB(54, 64, 83))
-		end
+  local accent=if boss then Color3.fromRGB(122,71,153) else Color3.fromRGB(56+index*13,66,86)
+  local skin=Color3.fromRGB(218,174,137)
+  local scale=if boss then 1.35 else 1
+  local chest=part(model,"Core",Vector3.new(2.5,2.7,1.3)*scale,CFrame.new(position+Vector3.new(0,3.65*scale,0)),accent,Enum.Material.Fabric)
+  local head=part(model,"Head",Vector3.new(1.8,1.8,1.6)*scale,CFrame.new(position+Vector3.new(0,5.8*scale,0)),skin,Enum.Material.SmoothPlastic)
+  Style.Face(head,"villain")
+  head:FindFirstChild("CostumeFace").Face=Enum.NormalId.Back
+  part(model,"Hair",Vector3.new(1.9,0.45,1.7)*scale,CFrame.new(position+Vector3.new(0,6.6*scale,0)),Color3.fromRGB(30,25,27))
+  part(model,"JacketZip",Vector3.new(0.12,2.4,0.12)*scale,CFrame.new(position+Vector3.new(0,3.7*scale,0.72*scale)),Color3.fromRGB(186,193,200),Enum.Material.Metal)
+  part(model,"Belt",Vector3.new(2.55,0.25,1.35)*scale,CFrame.new(position+Vector3.new(0,2.5*scale,0)),Color3.fromRGB(34,25,28))
+  for _,side in ipairs({-1,1}) do
+   part(model,"Arm"..side,Vector3.new(0.8,2.4,1)*scale,CFrame.new(position+Vector3.new(side*1.7*scale,3.6*scale,0)),accent,Enum.Material.Fabric)
+   part(model,"Hand"..side,Vector3.new(0.8,0.6,1)*scale,CFrame.new(position+Vector3.new(side*1.7*scale,2.15*scale,0)),skin,Enum.Material.SmoothPlastic)
+   part(model,"Leg"..side,Vector3.new(0.95,2.1,1.05)*scale,CFrame.new(position+Vector3.new(side*0.65*scale,1.05*scale,0)),Color3.fromRGB(31,40,63),Enum.Material.Fabric)
+   part(model,"Shoe"..side,Vector3.new(1,0.35,1.3)*scale,CFrame.new(position+Vector3.new(side*0.65*scale,0.18*scale,0.12*scale)),Color3.fromRGB(24,23,27))
+  end
+
 		model.PrimaryPart = chest
 		local billboard = Instance.new("BillboardGui")
 		billboard.Name = "HealthDisplay"
@@ -294,7 +323,7 @@ function HeroCombatService:_buildTargets()
 		label.TextSize = 16
 		label.Parent = billboard
 		local record = {
-			model = model, center = chest, label = label, name = boss and "СТРАЖ АРЕНЫ" or "Тренировочный дрон",
+			model = model, center = chest, label = label, name = boss and "ГЛАВАРЬ БАНДЫ" or "Бандит квартала",
 			health = boss and 400 or 80, maxHealth = boss and 400 or 80,
 			coins = boss and 500 or 60, xp = boss and 200 or 40, respawn = boss and 30 or 8, dead = false,
 		}
@@ -371,7 +400,7 @@ function HeroCombatService:_attack(player, aim)
 	local character, _, root = liveCharacter(player)
 	local issued = self.issuedTools[player]
 	if not definition or not character or not issued or issued.Parent ~= character
-		or issued:GetAttribute("HeroWeapon") ~= id or not Rules.InArena(root.Position) then return end
+		or issued:GetAttribute("HeroWeapon") ~= id or player:GetAttribute("ObbyActive") == true or not Rules.InArena(root.Position) then return end
 	local origin = root.Position + Vector3.new(0, 1.5, 0)
 	local direction = Rules.CastDirection(origin, aim, definition.Range)
 	if not direction or now < (self.nextAttackAt[player] or -math.huge) then return end

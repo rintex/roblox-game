@@ -38,7 +38,8 @@ local instanceMeta = { __index = function(object, name)
 end }
 local Instance = {}
 local allowed = { Workspace=true, Lighting=true, Folder=true, Model=true, Part=true, SpawnLocation=true,
- ProximityPrompt=true, BillboardGui=true, TextLabel=true, Atmosphere=true, BloomEffect=true, ColorCorrectionEffect=true }
+ ProximityPrompt=true, BillboardGui=true, TextLabel=true, Atmosphere=true, BloomEffect=true, ColorCorrectionEffect=true,
+ SurfaceGui=true, Frame=true, UICorner=true }
 function Instance.new(class)
  assert(allowed[class], 'Unsupported build class: ' .. class)
  local object = setmetatable({ClassName=class, _attributes={}}, instanceMeta)
@@ -57,10 +58,14 @@ function CFrame.new(x,y,z) return {Position=if type(x)=='table' then x else Vect
 local Color3 = {}
 function Color3.fromRGB(r,g,b) return {R=r/255,G=g/255,B=b/255} end
 local UDim2 = {new=function(xs,xo,ys,yo) return {xs,xo,ys,yo} end}
+local Vector2={new=function(x,y) return {X=x,Y=y} end}
+local UDim={new=function(scale,offset) return {Scale=scale,Offset=offset} end}
 local Enum = {
  PartType={Block='Block',Ball='Ball'}, SurfaceType={Smooth='Smooth'},
- Material={Grass='Grass',SmoothPlastic='SmoothPlastic',Slate='Slate',Wood='Wood',WoodPlanks='WoodPlanks',Concrete='Concrete',Glass='Glass',Metal='Metal',Neon='Neon'},
+ Material={Grass='Grass',SmoothPlastic='SmoothPlastic',Slate='Slate',Wood='Wood',WoodPlanks='WoodPlanks',Concrete='Concrete',Glass='Glass',Metal='Metal',Neon='Neon',Brick='Brick',Asphalt='Asphalt',Cobblestone='Cobblestone',DiamondPlate='DiamondPlate',Fabric='Fabric'},
  KeyCode={E='E'}, Font={GothamBold='GothamBold'},
+ NormalId={Front='Front',Back='Back'},SurfaceGuiSizingMode={FixedSize='FixedSize'},
+ ZIndexBehavior={Sibling='Sibling'},
 }
 local Workspace = Instance.new('Workspace')
 local Lighting = Instance.new('Lighting')
@@ -79,6 +84,8 @@ local commonProperties = {
  'BackgroundColor3', 'TextColor3',
  'Brightness', 'GlobalShadows', 'Ambient', 'OutdoorAmbient', 'Density', 'Offset', 'Decay', 'Glare', 'Haze',
  'Intensity', 'Threshold', 'Contrast', 'Saturation', 'TintColor',
+ 'Face', 'SizingMode', 'CanvasSize', 'LightInfluence', 'Position', 'AnchorPoint', 'Rotation', 'ClipsDescendants', 'CornerRadius',
+ 'ZIndex', 'ZIndexBehavior',
 }
 local function encode(object)
  local tree = { ['$className']=object.ClassName }
@@ -89,6 +96,10 @@ local function encode(object)
    if key=='CFrame' then
     local p=value.Position
     value={p.X,p.Y,p.Z,1,0,0,0,1,0,0,0,1}
+   elseif key=='CanvasSize' or key=='AnchorPoint' then value={value.X,value.Y}
+   elseif key=='CornerRadius' then value={UDim={value.Scale,value.Offset}}
+   elseif key=='Position' then
+    value=if value.X==nil then {UDim2={{value[1],value[2]},{value[3],value[4]}}} else nil
    elseif colorProperties[key] then value={value.R,value.G,value.B}
    elseif vectorProperties[key] and type(value)=='table' and value.X ~= nil then value={value.X,value.Y,value.Z}
    elseif key=='Size' and type(value)=='table' then value={UDim2={{value[1],value[2]},{value[3],value[4]}}} end

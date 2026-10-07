@@ -1,5 +1,6 @@
 -- All prices, rewards and unlock requirements are server-owned.
 local Config = {
+ GameTitle='Герои квартала',
  StartingCoins=75,
  Floors={
   {Name='Первый этаж',Cost=50,Income=5,XP=20},
@@ -15,16 +16,24 @@ local Config = {
  Quests={
   {Id='collector',Title='Собери 1 000 монет',Target=1000,RewardCoins=500,RewardXP=100},
   {Id='builder',Title='Построй три этажа',Target=3,RewardCoins=1000,RewardXP=150},
-  {Id='fighter',Title='Победи пять роботов',Target=5,RewardCoins=750,RewardXP=100},
+  {Id='fighter',Title='Победи пять противников',Target=5,RewardCoins=750,RewardXP=100},
  },
  Heroes={
-  {Id='arachna',Name='Арахна',Description='Паучий разведчик с импульсным метателем нити.',MinFloor=1,MinRebirths=0,Color={59,204,167},Weapon='Нитевой импульс',Damage=18,Range=100,Cooldown=0.8,Kind='ray',WalkSpeed=20},
-  {Id='nightweaver',Name='Ночной Ткач',Description='Ночной костюм и усиленный нитевой бластер.',MinFloor=2,MinRebirths=0,Color={157,101,238},Weapon='Теневая нить',Damage=24,Range=110,Cooldown=0.7,Kind='ray',WalkSpeed=22},
-  {Id='volt',Name='Искра',Description='Электрический герой с разрядным карабином.',MinFloor=3,MinRebirths=0,Color={78,186,255},Weapon='Разрядник',Damage=30,Range=120,Cooldown=0.65,Kind='ray',WalkSpeed=24},
-  {Id='titan',Name='Титан',Description='Тяжёлый ударный молот поражает роботов рядом.',MinFloor=3,MinRebirths=1,Color={255,176,64},Weapon='Гравимолот',Damage=45,Range=20,Cooldown=1.6,Kind='slam',WalkSpeed=22},
-  {Id='frost',Name='Полярис',Description='Полярный костюм и кристальный излучатель.',MinFloor=3,MinRebirths=1,Color={159,236,255},Weapon='Криолуч',Damage=35,Range=110,Cooldown=1,Kind='ray',WalkSpeed=22},
-  {Id='helios',Name='Гелиос',Description='Высшая прокачка: солнечная броня и мощное энергетическое оружие.',MinFloor=3,MinRebirths=2,Color={255,218,89},Weapon='Солнечный излучатель',Damage=50,Range=130,Cooldown=0.7,Kind='ray',WalkSpeed=26},
+  {Id='arachna',Name='Человек-паук',Style='spider',Description='Красно-синий костюм, маска с паутиной и паучий символ.',MinFloor=1,MinRebirths=0,Color={190,39,45},Weapon='Паутинный заряд',Damage=18,Range=100,Cooldown=0.8,Kind='ray',WalkSpeed=20},
+  {Id='nightweaver',Name='Человек-паук: чёрный костюм',Style='symbiote',Description='Чёрный костюм с большим белым пауком и усиленным зарядом.',MinFloor=2,MinRebirths=0,Color={44,49,64},Weapon='Симбиотическая паутина',Damage=24,Range=110,Cooldown=0.7,Kind='ray',WalkSpeed=22},
+  {Id='volt',Name='Железный человек',Style='iron',Description='Красно-золотая броня, светящийся реактор и репульсор.',MinFloor=3,MinRebirths=0,Color={184,36,40},Weapon='Репульсор',Damage=30,Range=120,Cooldown=0.65,Kind='ray',WalkSpeed=24},
+  {Id='titan',Name='Халк',Style='hulk',Description='Зелёная кожа, мощные плечи, фиолетовые штаны и удар по земле.',MinFloor=3,MinRebirths=1,Color={100,166,67},Weapon='Удар Халка',Damage=45,Range=20,Cooldown=1.6,Kind='slam',WalkSpeed=22},
+  {Id='frost',Name='Тор',Style='thor',Description='Броня с дисками, красный плащ и молот Мьёльнир.',MinFloor=3,MinRebirths=1,Color={159,180,204},Weapon='Мьёльнир',Damage=35,Range=110,Cooldown=1,Kind='ray',WalkSpeed=22},
+  {Id='helios',Name='Железный человек: Mark 85',Style='iron_gold',Description='Золотая наноброня с усиленным реактором.',MinFloor=3,MinRebirths=2,Color={223,177,74},Weapon='Нанорепульсор',Damage=50,Range=130,Cooldown=0.7,Kind='ray',WalkSpeed=26},
  },
+ Obby={RewardCoins=300,RewardXP=75,RewardCooldown=300,MinimumRunSeconds=15,MaximumRunSeconds=600,
+  StageMinimumSeconds=0.45,WalkSpeed=16,JumpPower=50,JumpHeight=7.2,
+  Platforms={
+   {X=-27,Y=4,Z=90},{X=-24,Y=5,Z=100},{X=-20,Y=6,Z=110},{X=-26,Y=7,Z=120},
+   {X=-20,Y=8,Z=130},{X=-12,Y=9,Z=136},{X=-2,Y=10,Z=137},{X=8,Y=11,Z=133},
+   {X=17,Y=12,Z=126},{X=25,Y=13,Z=117},{X=27,Y=14,Z=106},{X=24,Y=15,Z=94},
+   {X=17,Y=16,Z=85},{X=8,Y=17,Z=83},{X=-2,Y=18,Z=85},{X=-12,Y=19,Z=90},
+  },Checkpoints={4,8,12}},
  Weapons={
   {Id='pulse_pistol',Name='Импульсный пистолет',Rarity='Обычное',LootWeight=40,Damage=12,Range=90,Cooldown=0.65,Kind='ray',Color={165,186,202}},
   {Id='thread_launcher',Name='Нитевой метатель',Rarity='Необычное',LootWeight=28,Damage=20,Range=100,Cooldown=0.9,Kind='ray',Color={59,204,167}},

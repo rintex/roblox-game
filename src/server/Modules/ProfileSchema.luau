@@ -11,7 +11,7 @@ end
 function Schema.New(config)
 	return { Coins = config.StartingCoins, XP = 0, Floor = 0, DropperTier = 0, Bank = 0, BonusReadyAt = 0,
 		Rebirths = 0, EquippedHero = "", CollectedTotal = 0, EnemiesDefeated = 0, DailyReadyAt = 0, QuestClaims = {},
-		Inventory = {}, EquippedWeapon = "" }
+		Inventory = {}, EquippedWeapon = "", ObbyReadyAt = 0, ObbyWins = 0, ObbyBestMilliseconds = 0 }
 end
 
 function Schema.Normalize(data, config, now)
@@ -45,6 +45,9 @@ function Schema.Normalize(data, config, now)
 		DailyReadyAt = boundedInteger(data.DailyReadyAt, 0, now + (config.DailyCooldown or 86400)),
 		QuestClaims = claims,
 		Inventory = inventory, EquippedWeapon = equippedWeapon,
+		ObbyReadyAt = boundedInteger(data.ObbyReadyAt, 0, now + config.Obby.RewardCooldown),
+		ObbyWins = boundedInteger(data.ObbyWins, 0, config.MaxCoins),
+		ObbyBestMilliseconds = boundedInteger(data.ObbyBestMilliseconds, 0, config.Obby.MaximumRunSeconds * 1000),
 	}
 end
 
@@ -60,6 +63,7 @@ function Schema.Copy(profile)
 		CollectedTotal = profile.CollectedTotal or 0, EnemiesDefeated = profile.EnemiesDefeated or 0,
 		DailyReadyAt = profile.DailyReadyAt or 0, QuestClaims = claims,
 		Inventory = inventory, EquippedWeapon = profile.EquippedWeapon or "",
+		ObbyReadyAt = profile.ObbyReadyAt or 0, ObbyWins = profile.ObbyWins or 0, ObbyBestMilliseconds = profile.ObbyBestMilliseconds or 0,
 	}
 end
 

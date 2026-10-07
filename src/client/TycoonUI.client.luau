@@ -103,14 +103,14 @@ local hud = make("Frame", {
 corner(hud, 18)
 make("UIStroke", { Color = Color3.fromRGB(70, 89, 110), Transparency = 0.3 }, hud)
 local hudScale = make("UIScale", { Scale = 1 }, hud)
-label(hud, "Title", "БАЗА ГЕРОЯ", UDim2.fromOffset(206, 26), UDim2.fromOffset(16, 12), 17, palette.teal)
+label(hud, "Title", string.upper(Config.GameTitle), UDim2.fromOffset(206, 26), UDim2.fromOffset(16, 12), 17, palette.teal)
 local shopButton = make("TextButton", {
 	Name = "ShopButton",
 	Size = UDim2.fromOffset(96, 40),
 	Position = UDim2.fromOffset(228, 6),
 	BackgroundColor3 = palette.teal,
 	BorderSizePixel = 0,
-	Text = "Меню",
+	Text = "Магазин",
 	TextColor3 = palette.panel,
 	TextSize = 14,
 	Font = Enum.Font.GothamBold,
@@ -173,7 +173,7 @@ local shop = make("Frame", {
 corner(shop, 20)
 local shopScale = make("UIScale", { Scale = 1 }, shop)
 label(shop, "Title", "Твоя база. Твой герой.", UDim2.new(1, -84, 0, 30), UDim2.fromOffset(20, 16), 22, palette.teal)
-local shopIntro = label(shop, "Intro", "Строй, открывай героев и побеждай тренировочных ботов.", UDim2.new(1, -40, 0, 32), UDim2.fromOffset(20, 50), 13, palette.muted)
+local shopIntro = label(shop, "Intro", "Строй, открывай героев и побеждай противников на арене.", UDim2.new(1, -40, 0, 32), UDim2.fromOffset(20, 50), 13, palette.muted)
 local closeButton = make("TextButton", {
 	Name = "Close",
 	Size = UDim2.fromOffset(44, 44),
@@ -265,6 +265,8 @@ local heroCards = {}
 for index, hero in ipairs(Config.Heroes or {}) do
 	local title, detail, card = shopCard("Hero_" .. hero.Id, index, 192, tabs.Heroes.list)
 	title.Text = hero.Name
+	title.TextScaled = true
+	make("UITextSizeConstraint", { MinTextSize = 12, MaxTextSize = 16 }, title)
 	local color = hero.Color
 	if type(color) == "table" then title.TextColor3 = Color3.fromRGB(color[1], color[2], color[3]) end
 	detail.Size = UDim2.new(1, -28, 0, 90)
@@ -432,7 +434,7 @@ local function update()
 	elseif floor == 0 then
 		guideText.Text = "Построй первый этаж: подойди к синей площадке. Цена: " .. format(Config.Floors[1].Cost) .. " монет."
 	elseif floor < 3 then
-		guideText.Text = "Собирай зелёную кассу, строй этажи. В меню → «Герои» выбери героя и тренируйся на ботах."
+		guideText.Text = "Собирай зелёную кассу, строй этажи. В меню → «Герои» выбери героя и сражайся на арене."
 	else
 		guideText.Text = "Сундук на третьем этаже даёт бонусы. Меню → «Прогресс»: задания, награды и перерождения."
 	end
@@ -549,7 +551,7 @@ local function setTab(name)
 		shopIntro.Text = "Покупай этажи и генераторы на площадках твоего участка."
 		shopFooter.Text = "Подойди к площадке: E на ПК, кнопка на телефоне."
 	elseif name == "Heroes" then
-		shopIntro.Text = "Шесть оригинальных героев. Развивай базу, чтобы открыть их."
+		shopIntro.Text = "Человек-паук, Железный человек, Халк и Тор. Развивай базу, чтобы открыть их."
 		shopFooter.Text = "Возьми оружие. Клик или Q на ПК; «Навык» на телефоне."
 	elseif name == "Progress" then
 		shopIntro.Text = "Выполняй задания, возвращайся за наградой и становись сильнее."

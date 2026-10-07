@@ -56,18 +56,27 @@ function cameraFrame(position, target) {
   ];
 }
 
-const [source, environment, projectText, worldSource, configSource, heroWorldSource] = await Promise.all([
+const [source, environment, projectText, worldSource, configSource, heroWorldSource, styleSource, obbyWorldSource] = await Promise.all([
   readFile(resolve(root, 'src/server/Stage1Map.server.luau'), 'utf8'),
   readFile(resolve(root, 'tools/map-environment.luau'), 'utf8'),
   readFile(resolve(root, 'default.project.json'), 'utf8'),
   readFile(resolve(root, 'src/server/Modules/HouseWorld.luau'), 'utf8'),
   readFile(resolve(root, 'src/shared/TycoonConfig.luau'), 'utf8'),
   readFile(resolve(root, 'src/server/Modules/HeroWorld.luau'), 'utf8'),
+  readFile(resolve(root, 'src/server/Modules/VisualStyle.luau'), 'utf8'),
+  readFile(resolve(root, 'src/server/Modules/ObbyWorld.luau'), 'utf8'),
 ]);
 const state = await LuauState.createAsync();
 let baked;
 try {
-  const execute = state.loadstring(`${environment}\nlocal function generateMap()\n${source}\nend
+  const execute = state.loadstring(`${environment}
+local style=(function()\n${styleSource}\nend)()
+local script={Parent={WaitForChild=function(_,name)
+ if name=='Modules' then return {WaitForChild=function(_,key) return key end} end
+ return name
+end}}
+local function require(name) assert(name=='VisualStyle',name);return style end
+local function generateMap()\n${source}\nend
 generateMap()
 local before = #registry
 generateMap()
@@ -91,6 +100,12 @@ heroWorld.Build(Workspace,config)
 local campusBefore=#Workspace:GetDescendants()
 heroWorld.Build(Workspace,config)
 assert(#Workspace:GetDescendants()==campusBefore, "Hero campus construction must be repeatable")
+local obbyWorld=(function()\n${obbyWorldSource}\nend)()
+local obby=obbyWorld.Build(Workspace,config)
+assert(#obby:FindFirstChild('Platforms'):GetChildren()==16, 'Expected sixteen obby stages')
+local obbyBefore=#Workspace:GetDescendants()
+obbyWorld.Build(Workspace,config)
+assert(#Workspace:GetDescendants()==obbyBefore, 'Obby construction must be repeatable')
 return exportMap()`, 'Hero city place builder', true);
   const result = await execute();
   baked = plainValue(result[0]);
@@ -119,7 +134,7 @@ const intermediate = resolve(outputDirectory, 'stage1.generated.project.json');
 try {
   await writeFile(intermediate, `${JSON.stringify(project, null, 2)}\n`);
   for (const extension of ['rbxlx', 'rbxl']) {
-    const output = resolve(outputDirectory, `HeroCityTycoon.${extension}`);
+    const output = resolve(outputDirectory, `QuarterHeroes.${extension}`);
     const result = spawnSync(rojo, ['build', intermediate, '--output', output], {
       cwd: root,
       stdio: 'inherit',
@@ -130,4 +145,7 @@ try {
 } finally {
   await rm(intermediate, { force: true });
 }
-console.log('Built build/HeroCityTycoon.rbxlx and build/HeroCityTycoon.rbxl: twelve plots, original heroes, campus, and game services.');
+console.log('Built build/QuarterHeroes.rbxlx and .rbxl: textured city, Marvel costumes, twelve plots, arena and rooftop obby.');
+const preview = spawnSync('python3', [resolve(root, 'tools/preview-costumes.py')], { cwd: root, stdio: 'inherit' });
+if (preview.error) throw preview.error;
+if (preview.status !== 0) throw new Error('Costume preview export failed');

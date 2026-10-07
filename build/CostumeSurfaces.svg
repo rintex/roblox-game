@@ -1,0 +1,198 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1140" height="740" viewBox="0 0 1140 740">
+<rect width="1140" height="740" fill="#141d2d"/>
+<text x="32" y="43" fill="#f4d37b" font-family="sans-serif" font-size="28">Герои квартала · рисунки костюмов</text>
+<text x="32" y="71" fill="#b4c4d5" font-family="sans-serif" font-size="15">Поверхности из готового файла. Это предпросмотр рисунков, не снимок Roblox Studio.</text>
+<defs><clipPath id="tile"><rect width="256" height="256"/></clipPath></defs>
+<rect x="24" y="94" width="348" height="299" rx="18" fill="#263449"/>
+<text x="40" y="127" fill="#f0f5fc" font-family="sans-serif" font-size="16">Человек-паук</text>
+<g transform="translate(42 171) scale(0.58)"><g clip-path="url(#tile)"><rect width="256" height="256" fill="#b82428"/>
+<rect x="-53.0" y="126.5" width="362.0" height="3.0" rx="0" fill="#12161e" transform="rotate(45.0 128.0 128.0)"/>
+<rect x="-53.0" y="126.5" width="362.0" height="3.0" rx="0" fill="#12161e" transform="rotate(135.0 128.0 128.0)"/>
+<rect x="0.0" y="41.0" width="256.0" height="2.0" rx="0" fill="#12161e" transform="rotate(0.0 128.0 42.0)"/>
+<rect x="0.0" y="83.0" width="256.0" height="2.0" rx="0" fill="#12161e" transform="rotate(0.0 128.0 84.0)"/>
+<rect x="0.0" y="125.0" width="256.0" height="2.0" rx="0" fill="#12161e" transform="rotate(0.0 128.0 126.0)"/>
+<rect x="0.0" y="167.0" width="256.0" height="2.0" rx="0" fill="#12161e" transform="rotate(0.0 128.0 168.0)"/>
+<rect x="0.0" y="209.0" width="256.0" height="2.0" rx="0" fill="#12161e" transform="rotate(0.0 128.0 210.0)"/>
+<rect x="-86.0" y="127.0" width="256.0" height="2.0" rx="0" fill="#12161e" transform="rotate(90.0 42.0 128.0)"/>
+<rect x="-44.0" y="127.0" width="256.0" height="2.0" rx="0" fill="#12161e" transform="rotate(90.0 84.0 128.0)"/>
+<rect x="-2.0" y="127.0" width="256.0" height="2.0" rx="0" fill="#12161e" transform="rotate(90.0 126.0 128.0)"/>
+<rect x="40.0" y="127.0" width="256.0" height="2.0" rx="0" fill="#12161e" transform="rotate(90.0 168.0 128.0)"/>
+<rect x="82.0" y="127.0" width="256.0" height="2.0" rx="0" fill="#12161e" transform="rotate(90.0 210.0 128.0)"/>
+<rect x="10.0" y="76.0" width="102.0" height="66.0" rx="0" fill="#12161e" transform="rotate(20.0 61.0 109.0)"/>
+<rect x="144.0" y="76.0" width="102.0" height="66.0" rx="0" fill="#12161e" transform="rotate(-20.0 195.0 109.0)"/>
+<rect x="20.0" y="85.5" width="82.0" height="43.0" rx="0" fill="#f5f7ef" transform="rotate(20.0 61.0 107.0)"/>
+<rect x="154.0" y="85.5" width="82.0" height="43.0" rx="0" fill="#f5f7ef" transform="rotate(-20.0 195.0 107.0)"/></g></g>
+<g transform="translate(208 171) scale(0.58)"><g clip-path="url(#tile)"><rect width="256" height="256" fill="#b82428"/>
+<rect x="26.0" y="42.0" width="204.0" height="2.0" rx="0" fill="#12161e" transform="rotate(0.0 128.0 43.0)"/>
+<rect x="26.0" y="85.0" width="204.0" height="2.0" rx="0" fill="#12161e" transform="rotate(0.0 128.0 86.0)"/>
+<rect x="26.0" y="128.0" width="204.0" height="2.0" rx="0" fill="#12161e" transform="rotate(0.0 128.0 129.0)"/>
+<rect x="26.0" y="171.0" width="204.0" height="2.0" rx="0" fill="#12161e" transform="rotate(0.0 128.0 172.0)"/>
+<rect x="26.0" y="214.0" width="204.0" height="2.0" rx="0" fill="#12161e" transform="rotate(0.0 128.0 215.0)"/>
+<rect x="-86.0" y="127.0" width="256.0" height="2.0" rx="0" fill="#12161e" transform="rotate(90.0 42.0 128.0)"/>
+<rect x="-44.0" y="127.0" width="256.0" height="2.0" rx="0" fill="#12161e" transform="rotate(90.0 84.0 128.0)"/>
+<rect x="-2.0" y="127.0" width="256.0" height="2.0" rx="0" fill="#12161e" transform="rotate(90.0 126.0 128.0)"/>
+<rect x="40.0" y="127.0" width="256.0" height="2.0" rx="0" fill="#12161e" transform="rotate(90.0 168.0 128.0)"/>
+<rect x="82.0" y="127.0" width="256.0" height="2.0" rx="0" fill="#12161e" transform="rotate(90.0 210.0 128.0)"/>
+<rect x="0.0" y="0.0" width="26.0" height="256.0" rx="0" fill="#1d4084" transform="rotate(0.0 13.0 128.0)"/>
+<rect x="230.0" y="0.0" width="26.0" height="256.0" rx="0" fill="#1d4084" transform="rotate(0.0 243.0 128.0)"/>
+<rect x="74.5" y="81.5" width="55.0" height="7.0" rx="0" fill="#12161e" transform="rotate(-165.20323 102.0 85.0)"/>
+<rect x="127.5" y="81.5" width="55.0" height="7.0" rx="0" fill="#12161e" transform="rotate(-14.796762 155.0 85.0)"/>
+<rect x="74.5" y="98.5" width="55.0" height="7.0" rx="0" fill="#12161e" transform="rotate(-165.20323 102.0 102.0)"/>
+<rect x="127.5" y="98.5" width="55.0" height="7.0" rx="0" fill="#12161e" transform="rotate(-14.796762 155.0 102.0)"/>
+<rect x="74.5" y="115.5" width="55.0" height="7.0" rx="0" fill="#12161e" transform="rotate(-165.20323 102.0 119.0)"/>
+<rect x="127.5" y="115.5" width="55.0" height="7.0" rx="0" fill="#12161e" transform="rotate(-14.796762 155.0 119.0)"/>
+<rect x="74.5" y="132.5" width="55.0" height="7.0" rx="0" fill="#12161e" transform="rotate(-165.20323 102.0 136.0)"/>
+<rect x="127.5" y="132.5" width="55.0" height="7.0" rx="0" fill="#12161e" transform="rotate(-14.796762 155.0 136.0)"/>
+<rect x="56.5" y="72.5" width="19.0" height="7.0" rx="0" fill="#12161e" transform="rotate(-168.11134 66.0 76.0)"/>
+<rect x="181.5" y="72.5" width="19.0" height="7.0" rx="0" fill="#12161e" transform="rotate(-11.888658 191.0 76.0)"/>
+<rect x="54.0" y="98.5" width="24.0" height="7.0" rx="0" fill="#12161e" transform="rotate(143.61565 66.0 102.0)"/>
+<rect x="179.0" y="98.5" width="24.0" height="7.0" rx="0" fill="#12161e" transform="rotate(36.384354 191.0 102.0)"/>
+<rect x="47.5" y="124.5" width="37.0" height="7.0" rx="0" fill="#12161e" transform="rotate(120.69972 66.0 128.0)"/>
+<rect x="172.5" y="124.5" width="37.0" height="7.0" rx="0" fill="#12161e" transform="rotate(59.300278 191.0 128.0)"/>
+<rect x="39.5" y="150.5" width="53.0" height="7.0" rx="0" fill="#12161e" transform="rotate(110.80679 66.0 154.0)"/>
+<rect x="164.5" y="150.5" width="53.0" height="7.0" rx="0" fill="#12161e" transform="rotate(69.19321 191.0 154.0)"/>
+<rect x="113.5" y="90.5" width="29.0" height="63.0" rx="0" fill="#12161e" transform="rotate(0.0 128.0 122.0)"/>
+<rect x="114.0" y="71.0" width="28.0" height="28.0" rx="128" fill="#12161e" transform="rotate(0.0 128.0 85.0)"/></g></g>
+<text x="82" y="357" fill="#a6bbd2" font-family="sans-serif" font-size="14">Маска</text>
+<text x="236" y="357" fill="#a6bbd2" font-family="sans-serif" font-size="14">Костюм</text>
+<rect x="396" y="94" width="348" height="299" rx="18" fill="#263449"/>
+<text x="412" y="127" fill="#f0f5fc" font-family="sans-serif" font-size="16">Человек-паук: чёрный костюм</text>
+<g transform="translate(414 171) scale(0.58)"><g clip-path="url(#tile)"><rect width="256" height="256" fill="#12161e"/>
+<rect x="-53.0" y="126.5" width="362.0" height="3.0" rx="0" fill="#4e525e" transform="rotate(45.0 128.0 128.0)"/>
+<rect x="-53.0" y="126.5" width="362.0" height="3.0" rx="0" fill="#4e525e" transform="rotate(135.0 128.0 128.0)"/>
+<rect x="0.0" y="41.0" width="256.0" height="2.0" rx="0" fill="#4e525e" transform="rotate(0.0 128.0 42.0)"/>
+<rect x="0.0" y="83.0" width="256.0" height="2.0" rx="0" fill="#4e525e" transform="rotate(0.0 128.0 84.0)"/>
+<rect x="0.0" y="125.0" width="256.0" height="2.0" rx="0" fill="#4e525e" transform="rotate(0.0 128.0 126.0)"/>
+<rect x="0.0" y="167.0" width="256.0" height="2.0" rx="0" fill="#4e525e" transform="rotate(0.0 128.0 168.0)"/>
+<rect x="0.0" y="209.0" width="256.0" height="2.0" rx="0" fill="#4e525e" transform="rotate(0.0 128.0 210.0)"/>
+<rect x="-86.0" y="127.0" width="256.0" height="2.0" rx="0" fill="#4e525e" transform="rotate(90.0 42.0 128.0)"/>
+<rect x="-44.0" y="127.0" width="256.0" height="2.0" rx="0" fill="#4e525e" transform="rotate(90.0 84.0 128.0)"/>
+<rect x="-2.0" y="127.0" width="256.0" height="2.0" rx="0" fill="#4e525e" transform="rotate(90.0 126.0 128.0)"/>
+<rect x="40.0" y="127.0" width="256.0" height="2.0" rx="0" fill="#4e525e" transform="rotate(90.0 168.0 128.0)"/>
+<rect x="82.0" y="127.0" width="256.0" height="2.0" rx="0" fill="#4e525e" transform="rotate(90.0 210.0 128.0)"/>
+<rect x="10.0" y="76.0" width="102.0" height="66.0" rx="0" fill="#12161e" transform="rotate(20.0 61.0 109.0)"/>
+<rect x="144.0" y="76.0" width="102.0" height="66.0" rx="0" fill="#12161e" transform="rotate(-20.0 195.0 109.0)"/>
+<rect x="20.0" y="85.5" width="82.0" height="43.0" rx="0" fill="#f5f7ef" transform="rotate(20.0 61.0 107.0)"/>
+<rect x="154.0" y="85.5" width="82.0" height="43.0" rx="0" fill="#f5f7ef" transform="rotate(-20.0 195.0 107.0)"/></g></g>
+<g transform="translate(580 171) scale(0.58)"><g clip-path="url(#tile)"><rect width="256" height="256" fill="#12161e"/>
+<rect x="74.5" y="81.5" width="55.0" height="7.0" rx="0" fill="#f5f7ef" transform="rotate(-165.20323 102.0 85.0)"/>
+<rect x="127.5" y="81.5" width="55.0" height="7.0" rx="0" fill="#f5f7ef" transform="rotate(-14.796762 155.0 85.0)"/>
+<rect x="74.5" y="98.5" width="55.0" height="7.0" rx="0" fill="#f5f7ef" transform="rotate(-165.20323 102.0 102.0)"/>
+<rect x="127.5" y="98.5" width="55.0" height="7.0" rx="0" fill="#f5f7ef" transform="rotate(-14.796762 155.0 102.0)"/>
+<rect x="74.5" y="115.5" width="55.0" height="7.0" rx="0" fill="#f5f7ef" transform="rotate(-165.20323 102.0 119.0)"/>
+<rect x="127.5" y="115.5" width="55.0" height="7.0" rx="0" fill="#f5f7ef" transform="rotate(-14.796762 155.0 119.0)"/>
+<rect x="74.5" y="132.5" width="55.0" height="7.0" rx="0" fill="#f5f7ef" transform="rotate(-165.20323 102.0 136.0)"/>
+<rect x="127.5" y="132.5" width="55.0" height="7.0" rx="0" fill="#f5f7ef" transform="rotate(-14.796762 155.0 136.0)"/>
+<rect x="56.5" y="72.5" width="19.0" height="7.0" rx="0" fill="#f5f7ef" transform="rotate(-168.11134 66.0 76.0)"/>
+<rect x="181.5" y="72.5" width="19.0" height="7.0" rx="0" fill="#f5f7ef" transform="rotate(-11.888658 191.0 76.0)"/>
+<rect x="54.0" y="98.5" width="24.0" height="7.0" rx="0" fill="#f5f7ef" transform="rotate(143.61565 66.0 102.0)"/>
+<rect x="179.0" y="98.5" width="24.0" height="7.0" rx="0" fill="#f5f7ef" transform="rotate(36.384354 191.0 102.0)"/>
+<rect x="47.5" y="124.5" width="37.0" height="7.0" rx="0" fill="#f5f7ef" transform="rotate(120.69972 66.0 128.0)"/>
+<rect x="172.5" y="124.5" width="37.0" height="7.0" rx="0" fill="#f5f7ef" transform="rotate(59.300278 191.0 128.0)"/>
+<rect x="39.5" y="150.5" width="53.0" height="7.0" rx="0" fill="#f5f7ef" transform="rotate(110.80679 66.0 154.0)"/>
+<rect x="164.5" y="150.5" width="53.0" height="7.0" rx="0" fill="#f5f7ef" transform="rotate(69.19321 191.0 154.0)"/>
+<rect x="113.5" y="90.5" width="29.0" height="63.0" rx="0" fill="#f5f7ef" transform="rotate(0.0 128.0 122.0)"/>
+<rect x="114.0" y="71.0" width="28.0" height="28.0" rx="128" fill="#f5f7ef" transform="rotate(0.0 128.0 85.0)"/></g></g>
+<text x="454" y="357" fill="#a6bbd2" font-family="sans-serif" font-size="14">Маска</text>
+<text x="608" y="357" fill="#a6bbd2" font-family="sans-serif" font-size="14">Костюм</text>
+<rect x="768" y="94" width="348" height="299" rx="18" fill="#263449"/>
+<text x="784" y="127" fill="#f0f5fc" font-family="sans-serif" font-size="16">Железный человек</text>
+<g transform="translate(786 171) scale(0.58)"><g clip-path="url(#tile)"><rect width="256" height="256" fill="#dfb14a"/>
+<rect x="49.0" y="223.5" width="158.0" height="33.0" rx="0" fill="#b82428" transform="rotate(0.0 128.0 240.0)"/>
+<rect x="-4.5" y="9.0" width="33.0" height="250.0" rx="0" fill="#b82428" transform="rotate(0.0 12.0 134.0)"/>
+<rect x="227.5" y="9.0" width="33.0" height="250.0" rx="0" fill="#b82428" transform="rotate(0.0 244.0 134.0)"/>
+<rect x="0.0" y="0.5" width="256.0" height="43.0" rx="0" fill="#b82428" transform="rotate(0.0 128.0 22.0)"/>
+<rect x="92.0" y="189.0" width="72.0" height="8.0" rx="0" fill="#12161e" transform="rotate(0.0 128.0 193.0)"/>
+<rect x="82.0" y="143.0" width="56.0" height="4.0" rx="0" fill="#a57f31" transform="rotate(96.1155 110.0 145.0)"/>
+<rect x="118.0" y="143.0" width="56.0" height="4.0" rx="0" fill="#a57f31" transform="rotate(83.8845 146.0 145.0)"/>
+<rect x="26.5" y="101.5" width="85.0" height="23.0" rx="0" fill="#12161e" transform="rotate(9.0 69.0 113.0)"/>
+<rect x="144.5" y="101.5" width="85.0" height="23.0" rx="0" fill="#12161e" transform="rotate(-9.0 187.0 113.0)"/>
+<rect x="32.5" y="104.0" width="73.0" height="12.0" rx="0" fill="#98f2ff" transform="rotate(9.0 69.0 110.0)"/>
+<rect x="150.5" y="104.0" width="73.0" height="12.0" rx="0" fill="#98f2ff" transform="rotate(-9.0 187.0 110.0)"/></g></g>
+<g transform="translate(952 171) scale(0.58)"><g clip-path="url(#tile)"><rect width="256" height="256" fill="#b82428"/>
+<rect x="79.5" y="174.5" width="97.0" height="13.0" rx="0" fill="#dfb14a" transform="rotate(0.0 128.0 181.0)"/>
+<rect x="79.5" y="198.5" width="97.0" height="13.0" rx="0" fill="#dfb14a" transform="rotate(0.0 128.0 205.0)"/>
+<rect x="79.5" y="222.5" width="97.0" height="13.0" rx="0" fill="#dfb14a" transform="rotate(0.0 128.0 229.0)"/>
+<rect x="6.5" y="18.5" width="71.0" height="101.0" rx="0" fill="#dfb14a" transform="rotate(-12.0 42.0 69.0)"/>
+<rect x="178.5" y="18.5" width="71.0" height="101.0" rx="0" fill="#dfb14a" transform="rotate(12.0 214.0 69.0)"/>
+<rect x="0.5" y="193.0" width="75.0" height="8.0" rx="0" fill="#12161e" transform="rotate(68.19859 38.0 197.0)"/>
+<rect x="180.5" y="193.0" width="75.0" height="8.0" rx="0" fill="#12161e" transform="rotate(111.80141 218.0 197.0)"/>
+<rect x="84.0" y="60.0" width="88.0" height="88.0" rx="128" fill="#12161e" transform="rotate(0.0 128.0 104.0)"/>
+<rect x="94.0" y="70.0" width="68.0" height="68.0" rx="128" fill="#98f2ff" transform="rotate(0.0 128.0 104.0)"/>
+<rect x="106.0" y="82.0" width="44.0" height="44.0" rx="128" fill="#f5f7ef" transform="rotate(0.0 128.0 104.0)"/></g></g>
+<text x="826" y="357" fill="#a6bbd2" font-family="sans-serif" font-size="14">Маска</text>
+<text x="980" y="357" fill="#a6bbd2" font-family="sans-serif" font-size="14">Костюм</text>
+<rect x="24" y="414" width="348" height="299" rx="18" fill="#263449"/>
+<text x="40" y="447" fill="#f0f5fc" font-family="sans-serif" font-size="16">Халк</text>
+<g transform="translate(42 491) scale(0.58)"><g clip-path="url(#tile)"><rect width="256" height="256" fill="#64a643"/>
+<rect x="30.5" y="73.0" width="79.0" height="14.0" rx="0" fill="#12161e" transform="rotate(-12.0 70.0 80.0)"/>
+<rect x="146.5" y="73.0" width="79.0" height="14.0" rx="0" fill="#12161e" transform="rotate(12.0 186.0 80.0)"/>
+<rect x="0.0" y="-7.5" width="256.0" height="49.0" rx="0" fill="#12161e" transform="rotate(0.0 128.0 17.0)"/>
+<rect x="82.0" y="180.5" width="92.0" height="21.0" rx="0" fill="#12161e" transform="rotate(0.0 128.0 191.0)"/>
+<rect x="119.0" y="127.0" width="18.0" height="28.0" rx="0" fill="#417529" transform="rotate(0.0 128.0 141.0)"/>
+<rect x="45.5" y="94.0" width="53.0" height="24.0" rx="0" fill="#f5f7ef" transform="rotate(0.0 72.0 106.0)"/>
+<rect x="157.5" y="94.0" width="53.0" height="24.0" rx="0" fill="#f5f7ef" transform="rotate(0.0 184.0 106.0)"/>
+<rect x="69.5" y="99.5" width="15.0" height="15.0" rx="128" fill="#12161e" transform="rotate(0.0 77.0 107.0)"/>
+<rect x="171.5" y="99.5" width="15.0" height="15.0" rx="128" fill="#12161e" transform="rotate(0.0 179.0 107.0)"/>
+<rect x="89.0" y="179.0" width="78.0" height="10.0" rx="0" fill="#f5f7ef" transform="rotate(0.0 128.0 184.0)"/></g></g>
+<g transform="translate(208 491) scale(0.58)"><g clip-path="url(#tile)"><rect width="256" height="256" fill="#64a643"/>
+<rect x="83.0" y="159.5" width="90.0" height="5.0" rx="0" fill="#46812c" transform="rotate(0.0 128.0 162.0)"/>
+<rect x="83.0" y="189.5" width="90.0" height="5.0" rx="0" fill="#46812c" transform="rotate(0.0 128.0 192.0)"/>
+<rect x="83.0" y="219.5" width="90.0" height="5.0" rx="0" fill="#46812c" transform="rotate(0.0 128.0 222.0)"/>
+<rect x="45.5" y="154.0" width="165.0" height="6.0" rx="0" fill="#46812c" transform="rotate(90.0 128.0 157.0)"/>
+<rect x="18.5" y="82.5" width="97.0" height="7.0" rx="0" fill="#46812c" transform="rotate(18.62158 67.0 86.0)"/>
+<rect x="140.5" y="82.5" width="97.0" height="7.0" rx="0" fill="#46812c" transform="rotate(161.37842 189.0 86.0)"/></g></g>
+<text x="82" y="677" fill="#a6bbd2" font-family="sans-serif" font-size="14">Маска</text>
+<text x="236" y="677" fill="#a6bbd2" font-family="sans-serif" font-size="14">Костюм</text>
+<rect x="396" y="414" width="348" height="299" rx="18" fill="#263449"/>
+<text x="412" y="447" fill="#f0f5fc" font-family="sans-serif" font-size="16">Тор</text>
+<g transform="translate(414 491) scale(0.58)"><g clip-path="url(#tile)"><rect width="256" height="256" fill="#daae89"/>
+<rect x="45.5" y="191.5" width="165.0" height="65.0" rx="0" fill="#9b6f2f" transform="rotate(0.0 128.0 224.0)"/>
+<rect x="30.5" y="73.0" width="79.0" height="14.0" rx="0" fill="#12161e" transform="rotate(-12.0 70.0 80.0)"/>
+<rect x="146.5" y="73.0" width="79.0" height="14.0" rx="0" fill="#12161e" transform="rotate(12.0 186.0 80.0)"/>
+<rect x="0.0" y="-7.5" width="256.0" height="49.0" rx="0" fill="#dfb14a" transform="rotate(0.0 128.0 17.0)"/>
+<rect x="82.0" y="180.5" width="92.0" height="21.0" rx="0" fill="#12161e" transform="rotate(0.0 128.0 191.0)"/>
+<rect x="119.0" y="127.0" width="18.0" height="28.0" rx="0" fill="#b07c5b" transform="rotate(0.0 128.0 141.0)"/>
+<rect x="45.5" y="94.0" width="53.0" height="24.0" rx="0" fill="#f5f7ef" transform="rotate(0.0 72.0 106.0)"/>
+<rect x="157.5" y="94.0" width="53.0" height="24.0" rx="0" fill="#f5f7ef" transform="rotate(0.0 184.0 106.0)"/>
+<rect x="69.5" y="99.5" width="15.0" height="15.0" rx="128" fill="#12161e" transform="rotate(0.0 77.0 107.0)"/>
+<rect x="171.5" y="99.5" width="15.0" height="15.0" rx="128" fill="#12161e" transform="rotate(0.0 179.0 107.0)"/>
+<rect x="89.0" y="179.0" width="78.0" height="10.0" rx="0" fill="#f5f7ef" transform="rotate(0.0 128.0 184.0)"/></g></g>
+<g transform="translate(580 491) scale(0.58)"><g clip-path="url(#tile)"><rect width="256" height="256" fill="#363e48"/>
+<rect x="39.0" y="66.0" width="42.0" height="42.0" rx="128" fill="#a3b1c2" transform="rotate(0.0 60.0 87.0)"/>
+<rect x="175.0" y="66.0" width="42.0" height="42.0" rx="128" fill="#a3b1c2" transform="rotate(0.0 196.0 87.0)"/>
+<rect x="39.0" y="113.0" width="42.0" height="42.0" rx="128" fill="#a3b1c2" transform="rotate(0.0 60.0 134.0)"/>
+<rect x="175.0" y="113.0" width="42.0" height="42.0" rx="128" fill="#a3b1c2" transform="rotate(0.0 196.0 134.0)"/>
+<rect x="39.0" y="160.0" width="42.0" height="42.0" rx="128" fill="#a3b1c2" transform="rotate(0.0 60.0 181.0)"/>
+<rect x="175.0" y="160.0" width="42.0" height="42.0" rx="128" fill="#a3b1c2" transform="rotate(0.0 196.0 181.0)"/>
+<rect x="0.0" y="213.0" width="256.0" height="28.0" rx="0" fill="#dfb14a" transform="rotate(0.0 128.0 227.0)"/></g></g>
+<text x="454" y="677" fill="#a6bbd2" font-family="sans-serif" font-size="14">Маска</text>
+<text x="608" y="677" fill="#a6bbd2" font-family="sans-serif" font-size="14">Костюм</text>
+<rect x="768" y="414" width="348" height="299" rx="18" fill="#263449"/>
+<text x="784" y="447" fill="#f0f5fc" font-family="sans-serif" font-size="16">Железный человек: Mark 85</text>
+<g transform="translate(786 491) scale(0.58)"><g clip-path="url(#tile)"><rect width="256" height="256" fill="#dfb14a"/>
+<rect x="49.0" y="223.5" width="158.0" height="33.0" rx="0" fill="#b82428" transform="rotate(0.0 128.0 240.0)"/>
+<rect x="-4.5" y="9.0" width="33.0" height="250.0" rx="0" fill="#b82428" transform="rotate(0.0 12.0 134.0)"/>
+<rect x="227.5" y="9.0" width="33.0" height="250.0" rx="0" fill="#b82428" transform="rotate(0.0 244.0 134.0)"/>
+<rect x="0.0" y="0.5" width="256.0" height="43.0" rx="0" fill="#b82428" transform="rotate(0.0 128.0 22.0)"/>
+<rect x="92.0" y="189.0" width="72.0" height="8.0" rx="0" fill="#12161e" transform="rotate(0.0 128.0 193.0)"/>
+<rect x="82.0" y="143.0" width="56.0" height="4.0" rx="0" fill="#a57f31" transform="rotate(96.1155 110.0 145.0)"/>
+<rect x="118.0" y="143.0" width="56.0" height="4.0" rx="0" fill="#a57f31" transform="rotate(83.8845 146.0 145.0)"/>
+<rect x="26.5" y="101.5" width="85.0" height="23.0" rx="0" fill="#12161e" transform="rotate(9.0 69.0 113.0)"/>
+<rect x="144.5" y="101.5" width="85.0" height="23.0" rx="0" fill="#12161e" transform="rotate(-9.0 187.0 113.0)"/>
+<rect x="32.5" y="104.0" width="73.0" height="12.0" rx="0" fill="#98f2ff" transform="rotate(9.0 69.0 110.0)"/>
+<rect x="150.5" y="104.0" width="73.0" height="12.0" rx="0" fill="#98f2ff" transform="rotate(-9.0 187.0 110.0)"/></g></g>
+<g transform="translate(952 491) scale(0.58)"><g clip-path="url(#tile)"><rect width="256" height="256" fill="#dfb14a"/>
+<rect x="79.5" y="174.5" width="97.0" height="13.0" rx="0" fill="#dfb14a" transform="rotate(0.0 128.0 181.0)"/>
+<rect x="79.5" y="198.5" width="97.0" height="13.0" rx="0" fill="#dfb14a" transform="rotate(0.0 128.0 205.0)"/>
+<rect x="79.5" y="222.5" width="97.0" height="13.0" rx="0" fill="#dfb14a" transform="rotate(0.0 128.0 229.0)"/>
+<rect x="6.5" y="18.5" width="71.0" height="101.0" rx="0" fill="#dfb14a" transform="rotate(-12.0 42.0 69.0)"/>
+<rect x="178.5" y="18.5" width="71.0" height="101.0" rx="0" fill="#dfb14a" transform="rotate(12.0 214.0 69.0)"/>
+<rect x="0.5" y="193.0" width="75.0" height="8.0" rx="0" fill="#12161e" transform="rotate(68.19859 38.0 197.0)"/>
+<rect x="180.5" y="193.0" width="75.0" height="8.0" rx="0" fill="#12161e" transform="rotate(111.80141 218.0 197.0)"/>
+<rect x="84.0" y="60.0" width="88.0" height="88.0" rx="128" fill="#12161e" transform="rotate(0.0 128.0 104.0)"/>
+<rect x="94.0" y="70.0" width="68.0" height="68.0" rx="128" fill="#98f2ff" transform="rotate(0.0 128.0 104.0)"/>
+<rect x="106.0" y="82.0" width="44.0" height="44.0" rx="128" fill="#f5f7ef" transform="rotate(0.0 128.0 104.0)"/></g></g>
+<text x="826" y="677" fill="#a6bbd2" font-family="sans-serif" font-size="14">Маска</text>
+<text x="980" y="677" fill="#a6bbd2" font-family="sans-serif" font-size="14">Костюм</text>
+</svg>

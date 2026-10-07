@@ -4,7 +4,7 @@ import json
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parent.parent
-place = ET.parse(ROOT / 'build/HeroCityTycoon.rbxlx').getroot()
+place = ET.parse(ROOT / 'build/QuarterHeroes.rbxlx').getroot()
 
 def props(item):
     return {p.attrib['name']: p for p in item.find('Properties')}
@@ -69,5 +69,12 @@ assert sum(i.attrib['class'] in ('Script', 'ModuleScript', 'LocalScript') for i 
 assert sum(i.attrib['class'] == 'RemoteEvent' for i in items) == expected_remotes
 camera = child(workspace, 'Camera')
 assert props(workspace)['CurrentCamera'].text == camera.attrib['referent']
-assert (ROOT / 'build/HeroCityTycoon.rbxl').read_bytes()[:14] == b'<roblox!\x89\xff\r\n\x1a\n'
-print(f'Place validation passed: twelve plots, campus, one spawn, {expected_scripts} exact sources, {expected_remotes} remotes, HUD and camera.')
+assert (ROOT / 'build/QuarterHeroes.rbxl').read_bytes()[:14] == b'<roblox!\x89\xff\r\n\x1a\n'
+obby = child(workspace, 'RooftopObby')
+assert len(child(obby, 'Platforms').findall('Item')) == 16
+assert child(child(obby, 'StartStand'), 'StartObbyPrompt').attrib['class'] == 'ProximityPrompt'
+assert any(i.attrib['class'] == 'SurfaceGui' for i in items), 'Costume artwork missing'
+for hero in child(campus, 'Gallery').findall('Item'):
+    assert child(child(hero, 'Head'), 'CostumeFace').attrib['class'] == 'SurfaceGui'
+    assert child(child(hero, 'Torso'), 'CostumeChest').attrib['class'] == 'SurfaceGui'
+print(f'Place validation passed: textured city, sixteen obby stages, twelve plots, costume surfaces, {expected_scripts} exact sources, {expected_remotes} remotes, HUD and camera.')

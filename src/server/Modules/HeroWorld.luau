@@ -1,5 +1,6 @@
 -- Только оформление мира: награды, герои и бой проверяются другими серверными модулями.
 local HeroWorld = {}
+local Style = require(script.Parent:WaitForChild("VisualStyle"))
 
 local DARK = Color3.fromRGB(34, 48, 70)
 local CREAM = Color3.fromRGB(243, 239, 220)
@@ -26,6 +27,7 @@ local function part(parent, name, size, position, color, material, collide)
 	object.CFrame = CFrame.new(position)
 	object.Color = color
 	object.Material = material or Enum.Material.SmoothPlastic
+	Style.Material(object)
 	object.Shape = Enum.PartType.Block
 	object.TopSurface = Enum.SurfaceType.Smooth
 	object.BottomSurface = Enum.SurfaceType.Smooth
@@ -115,21 +117,28 @@ local function buildHero(gallery, definition, index)
 	end
 	part(model, "Torso", Vector3.new(if index == 4 then 2.5 else 2, 2.7, 1.2), origin + Vector3.new(0, 4.25, 0), color, Enum.Material.SmoothPlastic, false)
 	local head = part(model, "Head", Vector3.new(1.6, 1.6, 1.6), origin + Vector3.new(0, 6.45, 0), color, Enum.Material.SmoothPlastic, false)
-	head.Shape = Enum.PartType.Ball
-	part(model, "Visor", Vector3.new(1.2, 0.28, 0.15), origin + Vector3.new(0, 6.55, -0.8), CREAM, Enum.Material.Neon, false)
-	part(model, "Emblem", Vector3.new(0.6, 0.7, 0.15), origin + Vector3.new(0, 4.65, -0.67), CREAM, Enum.Material.Neon, false)
-	if index == 2 then
-		part(model, "Cape", Vector3.new(3.3, 3.9, 0.2), origin + Vector3.new(0, 3.6, 0.85), Color3.fromRGB(62, 40, 89), Enum.Material.SmoothPlastic, false)
-	elseif index == 4 then
+	if definition.Style == "thor" then head.Color = Color3.fromRGB(218, 174, 137) end
+	Style.Face(head, definition.Style)
+	Style.Chest(model:FindFirstChild("Torso"), definition.Style)
+	-- Both rows face the walkway between the displays.
+	if index <= 3 then
+		head:FindFirstChild("CostumeFace").Face = Enum.NormalId.Back
+		model:FindFirstChild("Torso"):FindFirstChild("CostumeChest").Face = Enum.NormalId.Back
+	end
+	if definition.Style == "spider" then
+		for _, name in ipairs({ "LeftLeg", "RightLeg" }) do model:FindFirstChild(name).Color = Color3.fromRGB(29, 64, 132) end
+	elseif definition.Style == "hulk" then
+		for _, name in ipairs({ "LeftLeg", "RightLeg" }) do
+			model:FindFirstChild(name).Color = Color3.fromRGB(95, 55, 141)
+			model:FindFirstChild(name).Material = Enum.Material.Fabric
+		end
+	end
+	if index == 4 then
 		for _, side in ipairs({ -1, 1 }) do
-			part(model, "Armor" .. (if side < 0 then "Left" else "Right"), Vector3.new(1.1, 0.8, 1.4), origin + Vector3.new(side * 1.4, 5.35, 0), GOLD, Enum.Material.Metal, false)
+			part(model, "Muscle" .. (if side < 0 then "Left" else "Right"), Vector3.new(1.1, 0.8, 1.4), origin + Vector3.new(side * 1.4, 5.35, 0), color, Enum.Material.SmoothPlastic, false)
 		end
 	elseif index == 5 then
-		for spike = 1, 3 do
-			part(model, "IceCrown" .. spike, Vector3.new(0.2, 0.6, 0.25), origin + Vector3.new((spike - 2) * 0.45, 7.35, 0), CYAN, Enum.Material.Neon, false)
-		end
-	elseif index == 6 then
-		part(model, "SunCrest", Vector3.new(0.5, 0.7, 0.4), origin + Vector3.new(0, 7.45, 0), GOLD, Enum.Material.Neon, false)
+		part(model, "ThorCape", Vector3.new(3.3, 3.9, 0.2), origin + Vector3.new(0, 3.6, 0.85), Color3.fromRGB(170, 35, 38), Enum.Material.Fabric, false)
 	end
 	label(base, "HeroLabel", definition.Name .. "\nВыбор: кнопка «Герои»", Vector3.new(0, 9, 0), 155, 52)
 end
@@ -160,21 +169,35 @@ local function buildArena(campus)
 	label(arena:FindFirstChild("Floor"), "ArenaLabel", "АРЕНА PvP\nБой с игроками и роботами", Vector3.new(0, 13, 0), 290, 60)
 end
 
-local function buildTraining(campus)
-	local park = child(campus, "Folder", "TrainingPark")
-	part(park, "Floor", Vector3.new(64, 0.2, 68), Vector3.new(0, 0.1, 120), Color3.fromRGB(110, 157, 135), Enum.Material.Grass)
-	for lane, x in ipairs({ -22, 0, 22 }) do
-		part(park, "Lane" .. lane, Vector3.new(9, 0.04, 62), Vector3.new(x, 0.22, 120), CREAM, Enum.Material.SmoothPlastic, false)
-	end
-	for index = 1, 5 do
-		local height = index * 0.5
-		part(park, "JumpBlock" .. index, Vector3.new(7, height, 6), Vector3.new(-22, 0.25 + height / 2, 92 + index * 10), CYAN)
-		part(park, "Hurdle" .. index, Vector3.new(7, 1.5, 0.7), Vector3.new(0, 1, 92 + index * 10), GOLD)
-		part(park, "Slalom" .. index, Vector3.new(1.2, 4, 1.2), Vector3.new(22 + (if index % 2 == 0 then -3 else 3), 2.2, 92 + index * 10), VIOLET)
-	end
-	local start = part(park, "Start", Vector3.new(54, 0.1, 3), Vector3.new(0, 0.3, 88), DARK)
-	label(start, "TrainingLabel", "ТРЕНИРОВОЧНЫЙ ПАРК\nПрыжки • препятствия • слалом", Vector3.new(0, 6, 0), 270, 55)
-	part(park, "Finish", Vector3.new(54, 0.1, 3), Vector3.new(0, 0.3, 151), GOLD, Enum.Material.Neon)
+local function buildCityDecor(campus, config)
+ local decor=child(campus,"Folder","Neighborhood")
+ local sign=part(decor,"WelcomeSign",Vector3.new(18,4,0.5),Vector3.new(0,7,-23),DARK,Enum.Material.WoodPlanks,false)
+ label(sign,"WelcomeLabel",config.GameTitle.."\nСТРОЙ · ПРЫГАЙ · СРАЖАЙСЯ",Vector3.new(0,1,0),340,85)
+ for _,side in ipairs({-1,1}) do
+  part(decor,"SignPost"..side,Vector3.new(0.5,8,0.5),Vector3.new(side*7,4,-23),DARK,Enum.Material.Metal)
+ end
+ part(decor,"FountainBase",Vector3.new(14,0.65,11),Vector3.new(-18,0.6,-18),CREAM,Enum.Material.Cobblestone)
+ local water=part(decor,"FountainWater",Vector3.new(12,0.15,9),Vector3.new(-18,1,-18),Color3.fromRGB(75,177,218),Enum.Material.Glass,false)
+ water.Transparency=0.3;water.CanQuery=false
+ for _,side in ipairs({-1,1}) do
+  part(decor,"FountainRimX"..side,Vector3.new(0.8,1,11),Vector3.new(-18+side*6.8,0.9,-18),CREAM,Enum.Material.Concrete)
+  part(decor,"FountainRimZ"..side,Vector3.new(13,1,0.8),Vector3.new(-18,0.9,-18+side*5.2),CREAM,Enum.Material.Concrete)
+ end
+ part(decor,"FountainPillar",Vector3.new(1.2,3,1.2),Vector3.new(-18,2.4,-18),CREAM,Enum.Material.Slate)
+ local jet=part(decor,"WaterJet",Vector3.new(0.6,3.8,0.6),Vector3.new(-18,4.7,-18),CYAN,Enum.Material.Glass,false)
+ jet.Transparency=0.45;jet.CanQuery=false
+ for index,position in ipairs({Vector3.new(-31,0,24),Vector3.new(31,0,24),Vector3.new(-31,0,-9),Vector3.new(29,0,-23)}) do
+  part(decor,"FlowerBed"..index,Vector3.new(4.5,1.2,4.5),position+Vector3.new(0,0.6,0),Color3.fromRGB(147,102,71),Enum.Material.Brick)
+  for flower=1,3 do
+   local bloom=part(decor,"Flower"..index.."_"..flower,Vector3.new(1.3,1.3,1.3),position+Vector3.new((flower-2)*1.1,1.7,0),if flower==2 then GOLD else Color3.fromRGB(212,116,159),Enum.Material.SmoothPlastic,false)
+   bloom.Shape=Enum.PartType.Ball;bloom.CanQuery=false
+  end
+ end
+ for index,position in ipairs({Vector3.new(17,0,-17),Vector3.new(-31,0,9)}) do
+  part(decor,"BenchSeat"..index,Vector3.new(7,0.4,2),position+Vector3.new(0,1.4,0),Color3.fromRGB(146,102,71),Enum.Material.WoodPlanks)
+  part(decor,"BenchBack"..index,Vector3.new(7,1.4,0.3),position+Vector3.new(0,2.3,0.9),Color3.fromRGB(146,102,71),Enum.Material.WoodPlanks)
+  for _,side in ipairs({-1,1}) do part(decor,"BenchLeg"..index..side,Vector3.new(0.4,1.3,1.5),position+Vector3.new(side*2.8,0.7,0),DARK,Enum.Material.Metal) end
+ end
 end
 
 function HeroWorld.Build(workspace, config)
@@ -187,7 +210,7 @@ function HeroWorld.Build(workspace, config)
 		buildHero(gallery, definition, index)
 	end
 	buildArena(campus)
-	buildTraining(campus)
+	buildCityDecor(campus, config)
 	campus:SetAttribute("WorldReady", true)
 	return campus
 end

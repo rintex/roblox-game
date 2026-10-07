@@ -1,5 +1,5 @@
 {
-  "name": "RobloxGame",
+  "name": "QuarterHeroes",
   "tree": {
     "$className": "DataModel",
     "ReplicatedStorage": {
@@ -31,6 +31,9 @@
           "$className": "RemoteEvent"
         },
         "LootResult": {
+          "$className": "RemoteEvent"
+        },
+        "ObbyRequest": {
           "$className": "RemoteEvent"
         }
       }
@@ -77,6 +80,15 @@
         },
         "AdminService": {
           "$path": "src/server/Modules/AdminService.luau"
+        },
+        "VisualStyle": {
+          "$path": "src/server/Modules/VisualStyle.luau"
+        },
+        "ObbyWorld": {
+          "$path": "src/server/Modules/ObbyWorld.luau"
+        },
+        "ObbyService": {
+          "$path": "src/server/Modules/ObbyService.luau"
         }
       }
     },
@@ -101,6 +113,9 @@
         },
         "WeaponInventory": {
           "$path": "src/client/WeaponInventory.client.luau"
+        },
+        "ObbyHUD": {
+          "$path": "src/client/ObbyHUD.client.luau"
         }
       }
     },

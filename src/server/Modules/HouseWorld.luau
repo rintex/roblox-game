@@ -1,6 +1,7 @@
 -- Physical tycoon plots. This module only draws the world; the server owns money
 -- and all purchase decisions. Rebuilding Structure never deletes a prompt.
 local World = {}
+local Style = require(script.Parent:WaitForChild("VisualStyle"))
 
 local DEFAULT_POSITIONS = {
 	Vector3.new(-148, 0, -170), Vector3.new(148, 0, -170),
@@ -43,6 +44,7 @@ local function part(parent, name, size, position, color, material, canCollide)
 	object.CFrame = CFrame.new(position)
 	object.Color = color
 	object.Material = material or Enum.Material.SmoothPlastic
+	Style.Material(object)
 	object.Shape = Enum.PartType.Block
 	object.TopSurface = Enum.SurfaceType.Smooth
 	object.BottomSurface = Enum.SurfaceType.Smooth

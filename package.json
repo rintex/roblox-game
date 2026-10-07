@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node tools/build-stage1.mjs",
-    "test": "node tools/check-luau.mjs && node tools/test-tycoon.mjs && node tools/test-profiles.mjs && node tools/test-progression.mjs && node tools/test-combat.mjs && node tools/test-controls.mjs && node tools/test-loot.mjs && node tools/test-commerce-admin.mjs && python3 tools/check-place.py"
+    "test": "node tools/check-luau.mjs && node tools/test-tycoon.mjs && node tools/test-profiles.mjs && node tools/test-progression.mjs && node tools/test-combat.mjs && node tools/test-controls.mjs && node tools/test-loot.mjs && node tools/test-commerce-admin.mjs && node tools/test-obby.mjs && python3 tools/check-place.py"
   },
   "devDependencies": {
     "luau-web": "1.5.0"
