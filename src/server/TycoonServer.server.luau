@@ -1,25 +1,30 @@
--- Небольшая точка входа: карта, сохранения и экономика находятся в модулях.
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
-
-local config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TycoonConfig"))
-local modules = script.Parent:WaitForChild("Modules")
-local ProfileService = require(modules:WaitForChild("ProfileService"))
-local HouseWorld = require(modules:WaitForChild("HouseWorld"))
-local TycoonService = require(modules:WaitForChild("TycoonService"))
-local notice = ReplicatedStorage:WaitForChild("TycoonRemotes"):WaitForChild("Notice")
-
-local map = Workspace:WaitForChild("SimulatorMap")
-if map:GetAttribute("MapReady") ~= true then
-	-- Stage1Map создаёт геометрию до установки MapReady.
-	while map.Parent and map:GetAttribute("MapReady") ~= true do
-		map:GetAttributeChangedSignal("MapReady"):Wait()
-	end
-end
-
-local plots = HouseWorld.BuildPlots(Workspace, config)
-local profiles = ProfileService.new(config)
-local tycoon = TycoonService.new(config, profiles, HouseWorld, plots, notice)
+-- Small bootstrap: server-owned construction, persistence, progression and heroes.
+local ReplicatedStorage=game:GetService('ReplicatedStorage')
+local Workspace=game:GetService('Workspace')
+local config=require(ReplicatedStorage:WaitForChild('Shared'):WaitForChild('TycoonConfig'))
+local modules=script.Parent:WaitForChild('Modules')
+local function module(name) return require(modules:WaitForChild(name)) end
+local ProfileService=module('ProfileService')
+local HouseWorld=module('HouseWorld')
+local HeroWorld=module('HeroWorld')
+local TycoonService=module('TycoonService')
+local ProgressionService=module('ProgressionService')
+local HeroCombatService=module('HeroCombatService')
+local LootDropService=module('LootDropService')
+local MonetizationService=module('MonetizationService')
+local AdminService=module('AdminService')
+local remotes=ReplicatedStorage:WaitForChild('TycoonRemotes')
+local map=Workspace:WaitForChild('SimulatorMap')
+while map.Parent and map:GetAttribute('MapReady')~=true do map:GetAttributeChangedSignal('MapReady'):Wait() end
+local plots=HouseWorld.BuildPlots(Workspace,config)
+local campus=HeroWorld.Build(Workspace,config)
+local profiles=ProfileService.new(config)
+local tycoon=TycoonService.new(config,profiles,HouseWorld,plots,remotes.Notice)
+local heroes=HeroCombatService.new(config,profiles,tycoon,remotes.Notice,remotes.SkillRequest,remotes.Effect)
+heroes:Start()
 tycoon:Start()
-
-print("Домики готовы: займите участок, стройте 3 этажа, забирайте монеты и улучшайте генератор.")
+LootDropService.new(config,profiles,tycoon,remotes.Notice,remotes.LootResult):Start()
+ProgressionService.new(config,profiles,tycoon,remotes.Notice,remotes.ActionRequest,campus,heroes):Start()
+MonetizationService.new(config,profiles,remotes.Notice,remotes.MonetizationRequest):Start()
+AdminService.new(config,profiles,tycoon,remotes.Notice,remotes.AdminRequest):Start()
+print('Hero City Tycoon готов: 12 участков, оригинальные герои, арена, задания и развитие.')

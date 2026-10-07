@@ -3,10 +3,12 @@
 local World = {}
 
 local DEFAULT_POSITIONS = {
-	Vector3.new(-48, 0, -48),
-	Vector3.new(48, 0, -48),
-	Vector3.new(-48, 0, 48),
-	Vector3.new(48, 0, 48),
+	Vector3.new(-148, 0, -170), Vector3.new(148, 0, -170),
+	Vector3.new(-148, 0, -102), Vector3.new(148, 0, -102),
+	Vector3.new(-148, 0, -34), Vector3.new(148, 0, -34),
+	Vector3.new(-148, 0, 34), Vector3.new(148, 0, 34),
+	Vector3.new(-148, 0, 102), Vector3.new(148, 0, 102),
+	Vector3.new(-148, 0, 170), Vector3.new(148, 0, 170),
 }
 
 local HOUSE_COLORS = {
@@ -199,6 +201,17 @@ local function buildThirdFloorExtras(structure, origin, floorTop)
 	part(structure, "BonusChestLock", Vector3.new(0.8, 1, 0.3), origin + Vector3.new(6, floorTop + 1.9, 4.35), GOLD, Enum.Material.Neon, false)
 	part(structure, "GoldCarpet", Vector3.new(8, 0.04, 5), origin + Vector3.new(6, floorTop + 0.03, 0), GOLD, Enum.Material.SmoothPlastic, false)
 	label(structure:FindFirstChild("BonusChest"), "ChestLabel", "БОНУСЫ 3 ЭТАЖА", Vector3.new(0, 3, 0), 170, 40)
+	local display = child(structure, "Model", "HeroDisplay")
+	local position = origin + Vector3.new(6, floorTop, 10)
+	part(display, "DisplayBase", Vector3.new(4, 0.3, 4), position + Vector3.new(0, 0.15, 0), DARK, Enum.Material.Metal)
+	part(display, "LeftLeg", Vector3.new(0.65, 1.5, 0.8), position + Vector3.new(-0.55, 1.05, 0), GOLD, Enum.Material.Metal)
+	part(display, "RightLeg", Vector3.new(0.65, 1.5, 0.8), position + Vector3.new(0.55, 1.05, 0), GOLD, Enum.Material.Metal)
+	local torso = part(display, "ArmorTorso", Vector3.new(2.2, 2.4, 1.2), position + Vector3.new(0, 3, 0), GOLD, Enum.Material.Metal)
+	part(display, "LeftArm", Vector3.new(0.6, 2.2, 0.9), position + Vector3.new(-1.55, 3, 0), GOLD, Enum.Material.Metal)
+	part(display, "RightArm", Vector3.new(0.6, 2.2, 0.9), position + Vector3.new(1.55, 3, 0), GOLD, Enum.Material.Metal)
+	part(display, "Helmet", Vector3.new(1.5, 1.5, 1.3), position + Vector3.new(0, 4.95, 0), DARK, Enum.Material.Metal)
+	part(display, "Visor", Vector3.new(1.1, 0.45, 0.15), position + Vector3.new(0, 5.1, -0.72), CYAN, Enum.Material.Neon, false)
+	label(torso, "HeroDisplayLabel", "ЗАЛ ГЕРОЯ", Vector3.new(0, 3.8, 0), 150, 38)
 end
 
 function World.UpdatePlot(plot, floorNumber, ownerName)
@@ -263,7 +276,13 @@ end
 
 function World.BuildPlots(workspace, config)
 	local folder = child(workspace, "Folder", "TycoonPlots")
-	local positions = if config and config.PlotPositions then config.PlotPositions else DEFAULT_POSITIONS
+	local positions = DEFAULT_POSITIONS
+	if config and config.PlotLayout then
+		positions = {}
+		for _, position in ipairs(config.PlotLayout) do
+			table.insert(positions, Vector3.new(position.X, 0, position.Z))
+		end
+	end
 	local plots = {}
 	for index, origin in ipairs(positions) do
 		local plot = child(folder, "Model", "Plot" .. index)
@@ -283,6 +302,7 @@ function World.BuildPlots(workspace, config)
 		pad(plot, origin, "UpgradePad", -3.5, Color3.fromRGB(108, 185, 248), "FloorPrompt", "Построить", "ЭТАЖ", false)
 		pad(plot, origin, "DropperUpgradePad", 3.5, Color3.fromRGB(175, 137, 242), "DropperPrompt", "Улучшить", "ГЕНЕРАТОР", false)
 		pad(plot, origin, "BonusPad", 10.5, GOLD, "BonusPrompt", "Получить", "БОНУС III", false)
+		pad(plot, origin, "HeroPad", 10.5, Color3.fromRGB(246, 129, 88), "HeroPrompt", "Выбрать героя", "ГЕРОЙ", false)
 		local sign = part(plot, "PlotSign", Vector3.new(1, 4.5, 1), origin + Vector3.new(-18, 2.55, -18), WOOD, Enum.Material.Wood)
 		label(sign, "PlotLabel", "Свободный участок\nЭтажи: 0 / 3", Vector3.new(0, 3.2, 0), 225, 65)
 		World.UpdatePlot(plot, 0, "")

@@ -6,11 +6,33 @@
       "$className": "ReplicatedStorage",
       "Shared": {
         "$className": "Folder",
-        "TycoonConfig": { "$path": "src/shared/TycoonConfig.luau" }
+        "TycoonConfig": {
+          "$path": "src/shared/TycoonConfig.luau"
+        }
       },
       "TycoonRemotes": {
         "$className": "Folder",
-        "Notice": { "$className": "RemoteEvent" }
+        "Notice": {
+          "$className": "RemoteEvent"
+        },
+        "ActionRequest": {
+          "$className": "RemoteEvent"
+        },
+        "SkillRequest": {
+          "$className": "RemoteEvent"
+        },
+        "Effect": {
+          "$className": "RemoteEvent"
+        },
+        "MonetizationRequest": {
+          "$className": "RemoteEvent"
+        },
+        "AdminRequest": {
+          "$className": "RemoteEvent"
+        },
+        "LootResult": {
+          "$className": "RemoteEvent"
+        }
       }
     },
     "ServerScriptService": {
@@ -18,28 +40,78 @@
       "Stage1Map": {
         "$path": "src/server/Stage1Map.server.luau"
       },
-      "TycoonServer": { "$path": "src/server/TycoonServer.server.luau" },
+      "TycoonServer": {
+        "$path": "src/server/TycoonServer.server.luau"
+      },
       "Modules": {
         "$className": "Folder",
-        "HouseWorld": { "$path": "src/server/Modules/HouseWorld.luau" },
-        "TycoonService": { "$path": "src/server/Modules/TycoonService.luau" },
-        "ProfileService": { "$path": "src/server/Modules/ProfileService.luau" },
-        "ProfileSchema": { "$path": "src/server/Modules/ProfileSchema.luau" }
+        "HouseWorld": {
+          "$path": "src/server/Modules/HouseWorld.luau"
+        },
+        "TycoonService": {
+          "$path": "src/server/Modules/TycoonService.luau"
+        },
+        "ProfileService": {
+          "$path": "src/server/Modules/ProfileService.luau"
+        },
+        "ProfileSchema": {
+          "$path": "src/server/Modules/ProfileSchema.luau"
+        },
+        "HeroWorld": {
+          "$path": "src/server/Modules/HeroWorld.luau"
+        },
+        "ProgressionService": {
+          "$path": "src/server/Modules/ProgressionService.luau"
+        },
+        "HeroCombatService": {
+          "$path": "src/server/Modules/HeroCombatService.luau"
+        },
+        "CombatRules": {
+          "$path": "src/server/Modules/CombatRules.luau"
+        },
+        "LootDropService": {
+          "$path": "src/server/Modules/LootDropService.luau"
+        },
+        "MonetizationService": {
+          "$path": "src/server/Modules/MonetizationService.luau"
+        },
+        "AdminService": {
+          "$path": "src/server/Modules/AdminService.luau"
+        }
       }
     },
     "StarterPlayer": {
       "$className": "StarterPlayer",
       "StarterPlayerScripts": {
         "$className": "StarterPlayerScripts",
-        "TycoonUI": { "$path": "src/client/TycoonUI.client.luau" },
-        "DropperEffects": { "$path": "src/client/DropperEffects.client.luau" }
+        "TycoonUI": {
+          "$path": "src/client/TycoonUI.client.luau"
+        },
+        "DropperEffects": {
+          "$path": "src/client/DropperEffects.client.luau"
+        },
+        "HeroControls": {
+          "$path": "src/client/HeroControls.client.luau"
+        },
+        "HeroEffects": {
+          "$path": "src/client/HeroEffects.client.luau"
+        },
+        "AdminPanel": {
+          "$path": "src/client/AdminPanel.client.luau"
+        },
+        "WeaponInventory": {
+          "$path": "src/client/WeaponInventory.client.luau"
+        }
       }
     },
     "StarterGui": {
       "$className": "StarterGui",
       "TycoonHUD": {
         "$className": "ScreenGui",
-        "$properties": { "ResetOnSpawn": false, "IgnoreGuiInset": false }
+        "$properties": {
+          "ResetOnSpawn": false,
+          "IgnoreGuiInset": false
+        }
       }
     }
   }

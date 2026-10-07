@@ -11,7 +11,7 @@ local function result(ok, text, kind)
 end
 
 function Economy.Income(config, profile)
-	return config.IncomeFor(profile.Floor, profile.DropperTier)
+	return config.IncomeFor(profile.Floor, profile.DropperTier, profile.Rebirths or 0)
 end
 
 function Economy.Accrue(config, profile, ticks)
@@ -34,6 +34,7 @@ function Economy.Collect(config, profile)
 	profile.Bank -= amount
 	profile.Coins += amount
 	profile.XP = math.min(config.MaxXP, profile.XP + amount)
+	profile.CollectedTotal = math.min(config.MaxCoins, (profile.CollectedTotal or 0) + amount)
 	return result(true, "+" .. amount .. " монет и +" .. amount .. " XP из копилки!")
 end
 
@@ -95,6 +96,7 @@ function TycoonService.new(config, profiles, world, plots, notice)
 		plots = plots,
 		notice = notice,
 		players = game:GetService("Players"),
+		httpService = game:GetService("HttpService"),
 		runService = game:GetService("RunService"),
 		states = {},
 		owners = {},
@@ -128,6 +130,11 @@ function TycoonService:_refreshPlot(plot)
 	prompts.dropper.Enabled = ready and profile.Floor > 0 and profile.DropperTier < #self.config.DropperCosts
 	prompts.collect.Enabled = ready and profile.Floor > 0
 	prompts.bonus.Enabled = ready and profile.Floor >= 3
+	local heroPad = plot:FindFirstChild("HeroPad")
+	local heroPrompt = heroPad and heroPad:FindFirstChild("HeroPrompt")
+	if heroPrompt then
+		heroPrompt.Enabled = ready and (profile.Floor >= 1 or (profile.Rebirths or 0) > 0)
+	end
 	plot:SetAttribute("OwnerReady", ready)
 	plot:SetAttribute("Bank", profile and profile.Bank or 0)
 	plot:SetAttribute("DropperTier", profile and profile.DropperTier or 0)
@@ -160,6 +167,17 @@ function TycoonService:_sync(state)
 	player:SetAttribute("Income", Economy.Income(self.config, profile))
 	player:SetAttribute("XP", profile.XP)
 	player:SetAttribute("BonusReadyAt", profile.BonusReadyAt)
+	player:SetAttribute("Rebirths", profile.Rebirths or 0)
+	player:SetAttribute("EquippedHero", profile.EquippedHero or "")
+	player:SetAttribute("EquippedWeapon", profile.EquippedWeapon or "")
+	player:SetAttribute("WeaponInventory", self.httpService:JSONEncode(profile.Inventory or {}))
+	player:SetAttribute("CollectedTotal", profile.CollectedTotal or 0)
+	player:SetAttribute("EnemiesDefeated", profile.EnemiesDefeated or 0)
+	player:SetAttribute("DailyReadyAt", profile.DailyReadyAt or 0)
+	local claims = profile.QuestClaims or {}
+	player:SetAttribute("QuestCollectorDone", claims.collector == true)
+	player:SetAttribute("QuestBuilderDone", claims.builder == true)
+	player:SetAttribute("QuestFighterDone", claims.fighter == true)
 	if state.plot then
 		self:_refreshPlot(state.plot)
 	end
@@ -183,9 +201,53 @@ function TycoonService:_applyPerks(state, character)
 		if self.states[state.player] ~= state or state.player.Character ~= character then
 			return
 		end
-		local unlocked = state.profile and state.profile.Floor >= 3 and state.player:GetAttribute("DataReady") == true
+		if self.perkHandler and state.profile and state.player:GetAttribute("DataReady") == true then
+			self.perkHandler(state.player, humanoid, state.profile)
+			return
+		end
+		local unlocked = state.profile and (state.profile.Floor >= 3 or (state.profile.Rebirths or 0) > 0)
+			and state.player:GetAttribute("DataReady") == true
 		humanoid.WalkSpeed = unlocked and self.config.ThirdFloorWalkSpeed or self.config.DefaultWalkSpeed
 	end)
+end
+
+-- Узкий серверный API для прогрессии и боя. Балансы остаются в общем профиле.
+function TycoonService:GetState(player)
+	return self.states[player]
+end
+
+function TycoonService:SyncPlayer(player)
+	local state = self.states[player]
+	if not state or not state.profile or not state.coins or not state.level then
+		return false
+	end
+	self:_sync(state)
+	return true
+end
+
+function TycoonService:RebuildPlayer(player)
+	local state = self.states[player]
+	if not state or not state.profile then
+		return false
+	end
+	if state.plot then
+		self:_rebuild(state)
+	end
+	self:_sync(state)
+	if player.Character then
+		self:_applyPerks(state, player.Character)
+	end
+	return true
+end
+
+function TycoonService:SetPerkHandler(callback)
+	assert(type(callback) == "function", "PerkHandler должен быть функцией")
+	self.perkHandler = callback
+	for _, state in pairs(self.states) do
+		if state.profile and state.player.Character then
+			self:_applyPerks(state, state.player.Character)
+		end
+	end
 end
 
 local function getValue(parent, name, className)

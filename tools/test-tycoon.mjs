@@ -13,9 +13,11 @@ const [configSource, serviceSource] = await Promise.all([
 const mock = String.raw`
 local Players = {}
 local RunService = {}
+local HttpService = { JSONEncode = function() return "{}" end }
 local game = { GetService = function(_, name)
 	if name == "Players" then return Players end
 	if name == "RunService" then return RunService end
+	if name == "HttpService" then return HttpService end
 	error("Unexpected service " .. name)
 end }
 local task = { spawn = function(callback) callback() end }
@@ -28,12 +30,14 @@ function vectorMeta.__sub(a, b)
 	return { Magnitude = math.sqrt(x*x + y*y + z*z) }
 end
 local function fresh()
-	return { Coins = 75, XP = 0, Floor = 0, DropperTier = 0, Bank = 0, BonusReadyAt = 0 }
+	return { Coins = 75, XP = 0, Floor = 0, DropperTier = 0, Bank = 0, BonusReadyAt = 0,
+		Rebirths = 0, EquippedHero = "", CollectedTotal = 0, EnemiesDefeated = 0, DailyReadyAt = 0, QuestClaims = {}, Inventory = {}, EquippedWeapon = "" }
 end
 local function player(id)
 	local p = { Parent = Players, UserId = id, DisplayName = "Player " .. id, attrs = { DataReady = true } }
 	function p:GetAttribute(name) return self.attrs[name] end
 	function p:SetAttribute(name, value) self.attrs[name] = value end
+	function p:FindFirstChild() return nil end
 	local root = { Position = vector(0, 3, 0), IsA = function(_, name) return name == "BasePart" end }
 	local humanoid = { Health = 100, WalkSpeed = 16, IsA = function(_, name) return name == "Humanoid" end }
 	p.Character = {
@@ -48,6 +52,7 @@ local function plot(id)
 	local p = { Parent = {}, Name = "Plot" .. id, attrs = { PlotId = "Plot" .. id, OwnerUserId = 0, Floor = 0 } }
 	function p:GetAttribute(name) return self.attrs[name] end
 	function p:SetAttribute(name, value) self.attrs[name] = value end
+	function p:FindFirstChild() return nil end
 	local prompts = {}
 	local names = { claim = "ClaimPrompt", floor = "FloorPrompt", dropper = "DropperPrompt", collect = "CollectPrompt", bonus = "BonusPrompt" }
 	for action, name in pairs(names) do
@@ -69,7 +74,7 @@ assert(not E.BuyDropper(Config, p).ok, "Dropper requires first floor")
 assert(E.BuyFloor(Config, p).ok and p.Coins == 25 and p.Floor == 1 and p.XP == 20, "First floor purchase")
 assert(not E.BuyFloor(Config, p).ok and p.Coins == 25 and p.Floor == 1, "Cannot buy an unaffordable floor")
 assert(E.Accrue(Config, p, 40) == 200 and p.Bank == 200, "First floor generates into bank")
-assert(E.Collect(Config, p).ok and p.Coins == 225 and p.Bank == 0 and p.XP == 220, "Collection transfers coins and awards XP")
+assert(E.Collect(Config, p).ok and p.Coins == 225 and p.Bank == 0 and p.XP == 220 and p.CollectedTotal == 200, "Collection transfers coins and awards XP and quest progress")
 assert(not E.Collect(Config, p).ok and p.Coins == 225, "Cannot collect same coins twice")
 assert(E.BuyFloor(Config, p).ok and p.Floor == 2 and p.Coins == 25, "Second floor purchase")
 E.Accrue(Config, p, 42)
@@ -92,7 +97,8 @@ assert(not E.Collect(Config, p).ok, "Full wallet cannot collect")
 assert(not E.ClaimBonus(Config, p, 1200).ok and p.BonusReadyAt == 1120, "Full wallet does not consume chest cooldown")
 p.Coins = 1000
 assert(E.BuyDropper(Config, p).ok and p.Coins == 940 and p.DropperTier == 1 and E.Income(Config, p) == 78, "Dropper multiplier")
-assert(E.BuyDropper(Config, p).ok and E.BuyDropper(Config, p).ok and p.DropperTier == 3, "All dropper upgrades")
+p.Coins = Config.MaxCoins
+for tier = 2, #Config.DropperCosts do assert(E.BuyDropper(Config, p).ok and p.DropperTier == tier, "All dropper upgrades") end
 assert(not E.BuyDropper(Config, p).ok, "Dropper maximum enforced")
 
 local a, b = player(1), player(2)

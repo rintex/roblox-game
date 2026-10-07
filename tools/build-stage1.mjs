@@ -56,12 +56,13 @@ function cameraFrame(position, target) {
   ];
 }
 
-const [source, environment, projectText, worldSource, configSource] = await Promise.all([
+const [source, environment, projectText, worldSource, configSource, heroWorldSource] = await Promise.all([
   readFile(resolve(root, 'src/server/Stage1Map.server.luau'), 'utf8'),
   readFile(resolve(root, 'tools/map-environment.luau'), 'utf8'),
   readFile(resolve(root, 'default.project.json'), 'utf8'),
   readFile(resolve(root, 'src/server/Modules/HouseWorld.luau'), 'utf8'),
   readFile(resolve(root, 'src/shared/TycoonConfig.luau'), 'utf8'),
+  readFile(resolve(root, 'src/server/Modules/HeroWorld.luau'), 'utf8'),
 ]);
 const state = await LuauState.createAsync();
 let baked;
@@ -74,7 +75,7 @@ assert(#registry == before, "Running Stage1Map again must not create duplicates"
 local config = (function()\n${configSource}\nend)()
 local world = (function()\n${worldSource}\nend)()
 local plots = world.BuildPlots(Workspace, config)
-assert(#plots == 4, "Expected four tycoon plots")
+assert(#plots == 12, "Expected twelve tycoon plots")
 local activeBefore = #Workspace:GetDescendants()
 world.BuildPlots(Workspace, config)
 assert(#Workspace:GetDescendants() == activeBefore, "Plot construction must be repeatable")
@@ -85,7 +86,12 @@ for floor = 1,3 do
  if floor==3 then assert(structure:FindFirstChild("BonusChest"), "Third floor bonus missing") end
 end
 world.UpdatePlot(plots[1], 0, "")
-return exportMap()`, 'House tycoon place builder', true);
+local heroWorld=(function()\n${heroWorldSource}\nend)()
+heroWorld.Build(Workspace,config)
+local campusBefore=#Workspace:GetDescendants()
+heroWorld.Build(Workspace,config)
+assert(#Workspace:GetDescendants()==campusBefore, "Hero campus construction must be repeatable")
+return exportMap()`, 'Hero city place builder', true);
   const result = await execute();
   baked = plainValue(result[0]);
 } finally {
@@ -101,7 +107,7 @@ project.tree.Workspace.Camera = {
   $className: 'Camera',
   $id: 'Stage1EditorCamera',
   $properties: {
-    CFrame: cameraFrame([110, 95, 110], [0, 0, 0]),
+    CFrame: cameraFrame([280, 225, 280], [0, 0, 0]),
     Focus: [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
     CameraType: 'Custom',
     FieldOfView: 70,
@@ -113,7 +119,7 @@ const intermediate = resolve(outputDirectory, 'stage1.generated.project.json');
 try {
   await writeFile(intermediate, `${JSON.stringify(project, null, 2)}\n`);
   for (const extension of ['rbxlx', 'rbxl']) {
-    const output = resolve(outputDirectory, `HouseTycoon.${extension}`);
+    const output = resolve(outputDirectory, `HeroCityTycoon.${extension}`);
     const result = spawnSync(rojo, ['build', intermediate, '--output', output], {
       cwd: root,
       stdio: 'inherit',
@@ -124,4 +130,4 @@ try {
 } finally {
   await rm(intermediate, { force: true });
 }
-console.log('Built build/HouseTycoon.rbxlx and build/HouseTycoon.rbxl: four plots, server modules, and client HUD.');
+console.log('Built build/HeroCityTycoon.rbxlx and build/HeroCityTycoon.rbxl: twelve plots, original heroes, campus, and game services.');

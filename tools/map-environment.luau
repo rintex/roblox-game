@@ -37,8 +37,8 @@ local instanceMeta = { __index = function(object, name)
  return methods[name]
 end }
 local Instance = {}
-local allowed = { Workspace=true, Folder=true, Model=true, Part=true, SpawnLocation=true,
- ProximityPrompt=true, BillboardGui=true, TextLabel=true }
+local allowed = { Workspace=true, Lighting=true, Folder=true, Model=true, Part=true, SpawnLocation=true,
+ ProximityPrompt=true, BillboardGui=true, TextLabel=true, Atmosphere=true, BloomEffect=true, ColorCorrectionEffect=true }
 function Instance.new(class)
  assert(allowed[class], 'Unsupported build class: ' .. class)
  local object = setmetatable({ClassName=class, _attributes={}}, instanceMeta)
@@ -63,20 +63,22 @@ local Enum = {
  KeyCode={E='E'}, Font={GothamBold='GothamBold'},
 }
 local Workspace = Instance.new('Workspace')
-local Lighting = {}
+local Lighting = Instance.new('Lighting')
 local game = {GetService=function(_,name)
  assert(name=='Workspace' or name=='Lighting', 'Unsupported build service: ' .. name)
  return if name=='Workspace' then Workspace else Lighting
 end}
 local function print() end
 local vectorProperties = { Size=true, StudsOffset=true }
-local colorProperties = { Color=true, BackgroundColor3=true, TextColor3=true }
+local colorProperties = { Color=true, BackgroundColor3=true, TextColor3=true, Ambient=true, OutdoorAmbient=true, Decay=true, TintColor=true }
 local commonProperties = {
  'Anchored', 'CanCollide', 'CanTouch', 'CanQuery', 'Transparency', 'Material', 'Shape', 'TopSurface', 'BottomSurface',
  'Neutral', 'Enabled', 'AllowTeamChangeOnTouch', 'Duration', 'ActionText', 'ObjectText', 'MaxActivationDistance',
  'RequiresLineOfSight', 'HoldDuration', 'KeyboardKeyCode', 'AlwaysOnTop', 'MaxDistance', 'BackgroundTransparency',
  'BorderSizePixel', 'Font', 'TextScaled', 'TextWrapped', 'Text', 'Size', 'StudsOffset', 'Color', 'CFrame',
  'BackgroundColor3', 'TextColor3',
+ 'Brightness', 'GlobalShadows', 'Ambient', 'OutdoorAmbient', 'Density', 'Offset', 'Decay', 'Glare', 'Haze',
+ 'Intensity', 'Threshold', 'Contrast', 'Saturation', 'TintColor',
 }
 local function encode(object)
  local tree = { ['$className']=object.ClassName }
@@ -88,8 +90,8 @@ local function encode(object)
     local p=value.Position
     value={p.X,p.Y,p.Z,1,0,0,0,1,0,0,0,1}
    elseif colorProperties[key] then value={value.R,value.G,value.B}
-   elseif vectorProperties[key] and value.X ~= nil then value={value.X,value.Y,value.Z}
-   elseif key=='Size' then value={UDim2={{value[1],value[2]},{value[3],value[4]}}} end
+   elseif vectorProperties[key] and type(value)=='table' and value.X ~= nil then value={value.X,value.Y,value.Z}
+   elseif key=='Size' and type(value)=='table' then value={UDim2={{value[1],value[2]},{value[3],value[4]}}} end
    properties[key]=value
   end
  end
@@ -113,12 +115,10 @@ local function exportMap()
   if object:IsA('SpawnLocation') then spawnCount+=1 end
  end
  assert(spawnCount==1, 'Expected one start spawn')
+ local lightingTree=encode(Lighting)
+ lightingTree['$properties'].TimeOfDay='14:00:00'
  return {
   Workspace=encode(Workspace),
-  Lighting={ ['$className']='Lighting', ['$properties']={
-   TimeOfDay='14:00:00', Brightness=Lighting.Brightness, GlobalShadows=Lighting.GlobalShadows,
-   Ambient={Lighting.Ambient.R,Lighting.Ambient.G,Lighting.Ambient.B},
-   OutdoorAmbient={Lighting.OutdoorAmbient.R,Lighting.OutdoorAmbient.G,Lighting.OutdoorAmbient.B},
-  } },
+  Lighting=lightingTree,
  }
 end
