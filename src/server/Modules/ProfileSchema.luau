@@ -11,7 +11,8 @@ end
 function Schema.New(config)
 	return { Coins = config.StartingCoins, XP = 0, Floor = 0, DropperTier = 0, Bank = 0, BonusReadyAt = 0,
 		Rebirths = 0, EquippedHero = "", CollectedTotal = 0, EnemiesDefeated = 0, DailyReadyAt = 0, QuestClaims = {},
-		Inventory = {}, EquippedWeapon = "", WeaponUpgrades = {}, ObbyReadyAt = 0, ObbyWins = 0, ObbyBestMilliseconds = 0 }
+		Inventory = {}, EquippedWeapon = "", WeaponUpgrades = {}, ObbyReadyAt = 0, ObbyWins = 0, ObbyBestMilliseconds = 0,
+		DailyLastClaimAt = 0, DailyStreak = 0, AchievementClaims = {}, EquippedTitle = "", TutorialStep = 1, CombatPractice = false, BossDefeated = 0 }
 end
 
 function Schema.Normalize(data, config, now)
@@ -44,6 +45,17 @@ function Schema.Normalize(data, config, now)
 		local level = boundedInteger(savedUpgrades[key], 0, #config.WeaponUpgradeCosts)
 		if level > 0 then upgrades[key] = level end
 	end
+	local achievementClaims = {}
+	for _, definition in ipairs(config.Achievements or {}) do
+		if type(data.AchievementClaims) == "table" and data.AchievementClaims[definition.Id] == true then achievementClaims[definition.Id] = true end
+	end
+	local title = config.GetAchievement(data.EquippedTitle)
+	local equippedTitle = if title and title.TitleReward and achievementClaims[title.Id] then title.Id else ""
+	-- Старым развитым профилям не навязываем повторное обучение и не выдаём его награды заново.
+	local hasPriorProgress = floor > 0 or rebirths > 0 or (type(data.XP) == "number" and data.XP > 0)
+		or (type(data.CollectedTotal) == "number" and data.CollectedTotal > 0) or next(inventory) ~= nil
+	local tutorialDefault = if hasPriorProgress then #config.TutorialSteps + 1 else 1
+	local tutorialStep = math.max(1, boundedInteger(data.TutorialStep, tutorialDefault, #config.TutorialSteps + 1))
 	return {
 		Coins = boundedInteger(data.Coins, config.StartingCoins, config.MaxCoins),
 		XP = boundedInteger(data.XP, 0, config.MaxXP),
@@ -58,6 +70,11 @@ function Schema.Normalize(data, config, now)
 		QuestClaims = claims,
 		Inventory = inventory, EquippedWeapon = equippedWeapon,
 		WeaponUpgrades = upgrades,
+		DailyLastClaimAt = boundedInteger(data.DailyLastClaimAt, 0, now),
+		DailyStreak = boundedInteger(data.DailyStreak, 0, #config.DailyRewards),
+		AchievementClaims = achievementClaims, EquippedTitle = equippedTitle,
+		TutorialStep = tutorialStep, CombatPractice = data.CombatPractice == true,
+		BossDefeated = boundedInteger(data.BossDefeated, 0, config.MaxCoins),
 		ObbyReadyAt = boundedInteger(data.ObbyReadyAt, 0, now + config.Obby.RewardCooldown),
 		ObbyWins = boundedInteger(data.ObbyWins, 0, config.MaxCoins),
 		ObbyBestMilliseconds = boundedInteger(data.ObbyBestMilliseconds, 0, config.Obby.MaximumRunSeconds * 1000),
@@ -71,6 +88,8 @@ function Schema.Copy(profile)
 	for id, count in pairs(profile.Inventory or {}) do inventory[id] = count end
 	local upgrades = {}
 	for id, level in pairs(profile.WeaponUpgrades or {}) do upgrades[id] = level end
+	local achievements = {}
+	for id, value in pairs(profile.AchievementClaims or {}) do if value == true then achievements[id] = true end end
 	return {
 		Coins = profile.Coins, XP = profile.XP, Floor = profile.Floor,
 		DropperTier = profile.DropperTier, Bank = profile.Bank, BonusReadyAt = profile.BonusReadyAt,
@@ -79,6 +98,9 @@ function Schema.Copy(profile)
 		DailyReadyAt = profile.DailyReadyAt or 0, QuestClaims = claims,
 		Inventory = inventory, EquippedWeapon = profile.EquippedWeapon or "",
 		WeaponUpgrades = upgrades,
+		DailyLastClaimAt = profile.DailyLastClaimAt or 0, DailyStreak = profile.DailyStreak or 0,
+		AchievementClaims = achievements, EquippedTitle = profile.EquippedTitle or "",
+		TutorialStep = profile.TutorialStep or 1, CombatPractice = profile.CombatPractice == true, BossDefeated = profile.BossDefeated or 0,
 		ObbyReadyAt = profile.ObbyReadyAt or 0, ObbyWins = profile.ObbyWins or 0, ObbyBestMilliseconds = profile.ObbyBestMilliseconds or 0,
 	}
 end

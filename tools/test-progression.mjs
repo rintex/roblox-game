@@ -5,9 +5,10 @@ import { fileURLToPath } from 'node:url';
 import { LuauState } from 'luau-web';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const [configSource, serviceSource] = await Promise.all([
+const [configSource, serviceSource, journeySource] = await Promise.all([
   readFile(resolve(root, 'src/shared/TycoonConfig.luau'), 'utf8'),
   readFile(resolve(root, 'src/server/Modules/ProgressionService.luau'), 'utf8'),
+  readFile(resolve(root, 'src/server/Modules/PlayerJourney.luau'), 'utf8'),
 ]);
 const fixture = String.raw`
 local function signal()
@@ -88,11 +89,41 @@ assert(E.ClaimDaily(Config, p, 1000).ok and p.DailyReadyAt == 87400, "Daily stor
 local dailyCoins = p.Coins
 assert(not E.ClaimDaily(Config, p, 87400-1).ok and p.Coins == dailyCoins, "Daily rejects early repeat")
 assert(E.ClaimDaily(Config, p, 87400).ok, "Daily can be claimed at exact ready time")
+assert(p.DailyStreak == 2 and p.DailyLastClaimAt == 87400 and p.Coins == dailyCoins + 600, "Second day uses persisted streak and increased configured reward")
+local sevenDays = fresh()
+for day = 1, 7 do
+	local before = sevenDays.Coins
+	local claimAt = 1000 + (day - 1) * Config.DailyCooldown
+	assert(E.ClaimDaily(Config, sevenDays, claimAt).ok, "Each eligible day can be claimed")
+	assert(sevenDays.DailyStreak == day and sevenDays.Coins - before == Config.DailyRewards[day], "Seven-day rewards match only server configuration")
+	assert(not E.ClaimDaily(Config, sevenDays, claimAt + Config.DailyCooldown - 1).ok, "Streak cannot bypass 24-hour cooldown")
+end
+assert(E.ClaimDaily(Config, sevenDays, 1000 + 7 * Config.DailyCooldown).ok and sevenDays.DailyStreak == 1, "Day eight restarts reward cycle")
+local beforeGap = sevenDays.Coins
+assert(E.ClaimDaily(Config, sevenDays, sevenDays.DailyLastClaimAt + 2 * Config.DailyCooldown + 1).ok and sevenDays.DailyStreak == 1 and sevenDays.Coins - beforeGap == 500, "Missed two-day window resets streak without erasing prior rewards")
+local legacyDaily = fresh()
+legacyDaily.DailyReadyAt = 90000
+assert(not E.ClaimDaily(Config, legacyDaily, 89999).ok and legacyDaily.Coins == 75, "Existing saved daily cooldown remains authoritative")
+assert(E.ClaimDaily(Config, legacyDaily, 90000).ok and legacyDaily.DailyStreak == 1, "Old profile starts additive streak only when old cooldown expires")
 local full = fresh()
 full.Coins = Config.MaxCoins
 full.CollectedTotal = 1000
 assert(not E.ClaimDaily(Config, full, 1000).ok and full.DailyReadyAt == 0, "Full wallet does not lose daily reward")
 assert(not E.ClaimQuest(Config, full, "collector").ok and not full.QuestClaims.collector, "Full wallet does not lose quest reward")
+assert(not full.DailyLastClaimAt and not full.DailyStreak, "Rejected daily does not consume new streak fields")
+local newGoals = fresh()
+for _, id in ipairs({"roof_runner", "boss_hunter", "district_patrol", "city_builder"}) do
+	assert(not E.ClaimQuest(Config, newGoals, id).ok, "New goals cannot be claimed before their real targets")
+end
+newGoals.ObbyWins = 1
+newGoals.BossDefeated = 1
+newGoals.EnemiesDefeated = 25
+newGoals.Rebirths = 1
+for _, id in ipairs({"roof_runner", "boss_hunter", "district_patrol", "city_builder"}) do
+	assert(E.ClaimQuest(Config, newGoals, id).ok and newGoals.QuestClaims[id], "New quest reads actual lifetime progress")
+	local paidOnce = newGoals.Coins
+	assert(not E.ClaimQuest(Config, newGoals, id).ok and newGoals.Coins == paidOnce, "New quest cannot pay twice")
+end
 
 local reborn = fresh()
 reborn.Coins = Config.RebirthCost(0)
@@ -190,6 +221,34 @@ profiles.closing = false
 
 profile.Floor = 1
 allow()
+request.OnServerEvent:Fire(player, "ClaimAchievement", "penthouse")
+assert(not (profile.AchievementClaims or {}).penthouse, "Remote achievement requires server-side progress")
+allow()
+local beforeAchievement = profile.Coins
+request.OnServerEvent:Fire(player, "ClaimAchievement", "first_home")
+assert(profile.AchievementClaims.first_home and profile.Coins == beforeAchievement + 40 and profile.EquippedTitle == "first_home", "Achievement remote pays configured amount and equips earned cosmetic title")
+local afterAchievement = profile.Coins
+allow()
+request.OnServerEvent:Fire(player, "ClaimAchievement", "first_home")
+assert(profile.Coins == afterAchievement, "Repeated achievement remote cannot duplicate currency")
+allow()
+request.OnServerEvent:Fire(player, "EquipTitle", "penthouse")
+assert(profile.EquippedTitle == "first_home", "Unclaimed cosmetic title cannot be equipped")
+allow()
+request.OnServerEvent:Fire(player, "EquipTitle", "<font color='red'>OWNER</font>")
+assert(profile.EquippedTitle == "first_home", "Client cannot forge title markup")
+allow()
+request.OnServerEvent:Fire(player, "EquipTitle", "")
+assert(profile.EquippedTitle == "", "Earned title can be hidden")
+allow()
+request.OnServerEvent:Fire(player, "EquipTitle", "first_home")
+assert(profile.EquippedTitle == "first_home", "Owned cosmetic title can be selected again")
+states[player].leaving = true
+allow()
+request.OnServerEvent:Fire(player, "ClaimAchievement", "first_home")
+assert(profile.Coins == afterAchievement, "Leaving state blocks new progression mutations")
+states[player].leaving = false
+allow()
 request.OnServerEvent:Fire(player, "EquipHero", "arachna")
 assert(profile.EquippedHero == "arachna", "Hero selection delegates server unlock validation")
 allow()
@@ -260,7 +319,7 @@ return true
 
 const vm = await LuauState.createAsync();
 try {
-  const run = vm.loadstring(`${fixture}\nlocal Config = (function()\n${configSource}\nend)()\nlocal Service = (function()\n${serviceSource}\nend)()\n${assertions}`, 'Progression rewards and server event tests', true);
+  const run = vm.loadstring(`${fixture}\nlocal Config = (function()\n${configSource}\nend)()\nlocal Journey = (function()\n${journeySource}\nend)()\nlocal script = {Parent = {WaitForChild = function(_, name) return name end}}\nlocal function require(name) assert(name == "PlayerJourney"); return Journey end\nlocal Service = (function()\n${serviceSource}\nend)()\n${assertions}`, 'Progression rewards and server event tests', true);
   const [passed] = await run();
   if (passed !== true) throw new Error('Progression Luau tests did not complete');
   console.log('Progression tests passed: quest/daily rewards, rebirth resets and retained progress, remote whitelist/throttle/readiness, hero and weapon selection, public prompts and arena opt-in.');

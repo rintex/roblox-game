@@ -8,6 +8,9 @@
         "$className": "Folder",
         "TycoonConfig": {
           "$path": "src/shared/TycoonConfig.luau"
+        },
+        "UITheme": {
+          "$path": "src/shared/UITheme.luau"
         }
       },
       "TycoonRemotes": {
@@ -95,6 +98,9 @@
         },
         "CostumePadService": {
           "$path": "src/server/Modules/CostumePadService.luau"
+        },
+        "PlayerJourney": {
+          "$path": "src/server/Modules/PlayerJourney.luau"
         }
       }
     },
@@ -122,6 +128,9 @@
         },
         "ObbyHUD": {
           "$path": "src/client/ObbyHUD.client.luau"
+        },
+        "TutorialHUD": {
+          "$path": "src/client/TutorialHUD.client.luau"
         }
       }
     },

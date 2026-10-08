@@ -13,10 +13,40 @@ local Config = {
  IncomeInterval=1,ActionCooldown=0.35,MaxBank=100000,MaxCoins=1000000000,MaxXP=1000000000,
  MaxRebirths=20,RebirthBaseCost=25000,RebirthBonusStep=0.35,RebirthMinFloor=3,RebirthMinTier=5,
  DailyReward=500,DailyCooldown=86400,
+ DailyRewards={500,600,700,800,1000,1200,1500},
+ GeneratorUpgrades={
+  {Name='Точный конвейер',Description='Ровная подача и +50% базового дохода.',Accent={93,227,187}},
+  {Name='Энергомодуль',Description='Больше энергии для всех этажей.',Accent={119,192,255}},
+  {Name='Автосортировка',Description='Ускоренная обработка, световой индикатор.',Accent={255,210,102}},
+  {Name='Квантовый привод',Description='Промышленный модуль для растущего квартала.',Accent={160,153,226}},
+  {Name='Ядро квартала',Description='Максимальная производительность и золотой статус.',Accent={255,192,94}},
+ },
+ TutorialSteps={
+  {Title='Твой участок',Description='Подойди к зелёной площадке свободного дома и займи его.',Target='plot',Coins=0,XP=10},
+  {Title='Первый этаж',Description='На своём участке построй этаж за 50 монет: синяя площадка.',Target='floor',Coins=15,XP=10},
+  {Title='Первая выручка',Description='Генератор уже работает. Забери монеты из зелёной копилки.',Target='collect',Coins=20,XP=10},
+  {Title='Быстрее и лучше',Description='Улучши генератор за 60 монет на фиолетовой площадке.',Target='generator',Coins=30,XP=15},
+  {Title='Примерь костюм',Description='Наступи на стенд первого открытого героя у площади.',Target='hero',Coins=40,XP=20},
+  {Title='Попробуй бой',Description='Войди через портал арены и попади по бандиту. От замахов можно уйти.',Target='combat',Coins=60,XP=25},
+ },
+ Achievements={
+  {Id='first_home',Title='Новосёл',Description='Построй первый этаж.',Field='Floor',Target=1,RewardCoins=40,RewardXP=10,TitleReward='НОВОСЁЛ'},
+  {Id='penthouse',Title='Вид на город',Description='Построй все три этажа.',Field='Floor',Target=3,RewardCoins=750,RewardXP=150,TitleReward='ХОЗЯИН КВАРТАЛА'},
+  {Id='defender',Title='Защитник квартала',Description='Победи 25 бандитов.',Field='EnemiesDefeated',Target=25,RewardCoins=1200,RewardXP=200,TitleReward='ЗАЩИТНИК'},
+  {Id='gang_breaker',Title='Гроза банды',Description='Победи главаря.',Field='BossDefeated',Target=1,RewardCoins=1000,RewardXP=200,TitleReward='ГРОЗА БАНДЫ'},
+  {Id='rooftop_regular',Title='Выше улиц',Description='Трижды заверши маршрут по крышам.',Field='ObbyWins',Target=3,RewardCoins=500,RewardXP=100,TitleReward='ПАРКУРИСТ'},
+  {Id='architect',Title='Новая глава',Description='Выполни первое перерождение.',Field='Rebirths',Target=1,RewardCoins=1500,RewardXP=250,TitleReward='АРХИТЕКТОР'},
+  {Id='collector_set',Title='На любой случай',Description='Найди четыре разных вида оружия.',Field='WeaponTypes',Target=4,RewardCoins=800,RewardXP=150,TitleReward='КОЛЛЕКЦИОНЕР'},
+  {Id='district_income',Title='Успешный квартал',Description='Собери 50 000 монет из копилки.',Field='CollectedTotal',Target=50000,RewardCoins=2500,RewardXP=300,TitleReward='МАГНАТ'},
+ },
  Quests={
-  {Id='collector',Title='Собери 1 000 монет',Target=1000,RewardCoins=500,RewardXP=100},
-  {Id='builder',Title='Построй три этажа',Target=3,RewardCoins=1000,RewardXP=150},
-  {Id='fighter',Title='Победи пять противников',Target=5,RewardCoins=750,RewardXP=100},
+  {Id='collector',Title='Собери 1 000 монет',Field='CollectedTotal',Target=1000,RewardCoins=500,RewardXP=100},
+  {Id='builder',Title='Построй три этажа',Field='Floor',Target=3,RewardCoins=1000,RewardXP=150},
+  {Id='fighter',Title='Победи пять противников',Field='EnemiesDefeated',Target=5,RewardCoins=750,RewardXP=100},
+  {Id='roof_runner',Title='Первый круг по крышам',Field='ObbyWins',Target=1,RewardCoins=300,RewardXP=75},
+  {Id='boss_hunter',Title='Останови главаря',Field='BossDefeated',Target=1,RewardCoins=750,RewardXP=150},
+  {Id='district_patrol',Title='Большой патруль',Field='EnemiesDefeated',Target=25,RewardCoins=1500,RewardXP=200},
+  {Id='city_builder',Title='Начни новую главу',Field='Rebirths',Target=1,RewardCoins=1000,RewardXP=150},
  },
  Heroes={
   {Id='arachna',Name='Человек-паук',Style='spider',Description='Красно-синий костюм, маска с паутиной и паучий символ.',MinFloor=1,MinRebirths=0,Color={190,39,45},Weapon='Паутинный заряд',Damage=18,Range=100,Cooldown=0.8,Kind='ray',WalkSpeed=20},
@@ -94,5 +124,15 @@ function Config.CanUseHero(profile,hero)
  local rebirths=profile.Rebirths or 0
  local earnedFloor=if rebirths>0 then #Config.Floors else profile.Floor or 0
  return earnedFloor>=hero.MinFloor and rebirths>=hero.MinRebirths
+end
+function Config.NextDailyReward(profile,now)
+ local last=profile.DailyLastClaimAt or 0
+ local continuous=last>0 and now>=last and now-last<=Config.DailyCooldown*2
+ local nextDay=if continuous then ((profile.DailyStreak or 0)%#Config.DailyRewards)+1 else 1
+ return Config.DailyRewards[nextDay],nextDay
+end
+function Config.GetAchievement(id)
+ for _,achievement in ipairs(Config.Achievements) do if achievement.Id==id then return achievement end end
+ return nil
 end
 return Config

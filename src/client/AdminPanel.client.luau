@@ -3,6 +3,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
+local Theme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UITheme"))
+local scope = Theme.Scope()
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -34,15 +36,16 @@ local function connect(signal, callback)
 	return connection
 end
 
-local panelColor = Color3.fromRGB(25, 32, 45)
-local cardColor = Color3.fromRGB(40, 51, 70)
-local textColor = Color3.fromRGB(238, 245, 255)
-local accent = Color3.fromRGB(255, 212, 115)
-local muted = Color3.fromRGB(172, 190, 211)
+local panelColor = Theme.Colors.panel
+local cardColor = Theme.Colors.card
+local textColor = Theme.Colors.text
+local accent = Theme.Colors.gold
+local muted = Theme.Colors.muted
 local function make(className, properties, parent)
 	local object = Instance.new(className)
 	for name, value in pairs(properties) do object[name] = value end
 	object.Parent = parent
+ if className == "TextButton" then Theme.DecorateButton(scope, object, accent) end
 	return object
 end
 local function corner(object, radius)
@@ -57,9 +60,10 @@ local function text(parent, name, value, size, position, fontSize, color)
 end
 
 local toggle = make("TextButton", {
-	Name = "AdminButton", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -144),
+	Name = "AdminButton", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -204),
 	Size = UDim2.fromOffset(110, 42), BackgroundColor3 = panelColor, BorderSizePixel = 0,
 	Text = "Админ", TextColor3 = accent, TextSize = 15, Font = Enum.Font.GothamBold,
+	Visible = false,
 }, gui)
 corner(toggle, 12)
 local backdrop = make("TextButton", {
@@ -71,7 +75,7 @@ local panel = make("Frame", {
 	Size = UDim2.fromOffset(440, 520), BackgroundColor3 = panelColor, BorderSizePixel = 0,
 	Visible = false, ZIndex = 3,
 }, gui)
-corner(panel, 18)
+Theme.Surface(panel, 18, accent)
 text(panel, "Title", "Панель владельца", UDim2.new(1, -84, 0, 34), UDim2.fromOffset(18, 10), 21, accent)
 text(panel, "Subtitle", "Действия применяются только к твоему персонажу.", UDim2.new(1, -36, 0, 38), UDim2.fromOffset(18, 46), 12, muted)
 local close = make("TextButton", {
@@ -128,12 +132,20 @@ corner(setup, 12)
 text(setup, "Heading", "Как подключить пропуска", UDim2.new(1, -24, 0, 28), UDim2.fromOffset(12, 8), 15, accent)
 text(setup, "Instructions", "Пропуска создаются в Creator Hub после публикации игры.\ncreate.roblox.com\n\nСоздай свои пропуска VIP и Neon, затем укажи их ID в ReplicatedStorage → Shared → TycoonConfig → GamePasses. Без настоящих ID покупки скрыты.", UDim2.new(1, -24, 1, -44), UDim2.fromOffset(12, 38), 12, textColor)
 
+local modal = Theme.RegisterModal("Admin", panel, backdrop, nil, close)
 local function setOpen(open)
-	local allowed = player:GetAttribute("IsGameAdmin") == true
-	panel.Visible = open and allowed
-	backdrop.Visible = open and allowed
+ local allowed = player:GetAttribute("IsGameAdmin") == true and player:GetAttribute("ObbyActive") ~= true
+ if open and allowed then modal:Open() else modal:Close() end
 end
-connect(toggle.Activated, function() setOpen(not panel.Visible) end)
+local function updateToggle()
+ -- Access lives in Settings so the owner has no extra floating control.
+ toggle.Visible = false
+ if player:GetAttribute("ObbyActive") == true then modal:Close(true) end
+end
+connect(playerGui:GetAttributeChangedSignal("QuarterModalOpen"), updateToggle)
+connect(player:GetAttributeChangedSignal("ObbyActive"), updateToggle)
+updateToggle()
+connect(toggle.Activated, function() setOpen(not modal.open) end)
 connect(close.Activated, function() setOpen(false) end)
 connect(backdrop.Activated, function() setOpen(false) end)
 connect(player:GetAttributeChangedSignal("IsGameAdmin"), function()
@@ -146,7 +158,8 @@ local function resize()
 	local camera = Workspace.CurrentCamera
 	if camera then
 		local size = camera.ViewportSize
-		panel.Size = UDim2.fromOffset(math.min(440, math.max(250, size.X - 28)), math.min(520, math.max(220, size.Y - 90)))
+		panel.Size = UDim2.fromOffset(math.min(440, math.max(260, size.X - 28)), math.min(520, math.max(230, size.Y - 80)))
+  toggle.Position = UDim2.new(.5, 0, 1, if size.Y >= 420 then -204 else -144)
 	end
 end
 local function bindCamera()
@@ -160,6 +173,8 @@ bindCamera()
 local function cleanup()
 	if not alive then return end
 	alive = false
+ modal:Destroy()
+ scope:Destroy()
 	for _, connection in ipairs(connections) do connection:Disconnect() end
 	if cameraConnection then cameraConnection:Disconnect() end
 	gui:Destroy()

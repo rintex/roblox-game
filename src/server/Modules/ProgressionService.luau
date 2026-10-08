@@ -1,6 +1,7 @@
 -- Ежедневная награда, задания, перерождения и безопасные действия общего меню.
 local ProgressionService = {}
 ProgressionService.__index = ProgressionService
+local Journey = require(script.Parent:WaitForChild("PlayerJourney"))
 local Economy = {}
 ProgressionService.Economy = Economy
 
@@ -14,12 +15,7 @@ function Economy.GetQuestProgress(config, profile, id)
 		if quest.Id == id then definition = quest; break end
 	end
 	if not definition then return 0, nil end
-	if id == "collector" then return profile.CollectedTotal or 0, definition end
-	if id == "builder" then
-		return (profile.Rebirths or 0) > 0 and definition.Target or profile.Floor, definition
-	end
-	if id == "fighter" then return profile.EnemiesDefeated or 0, definition end
-	return 0, definition
+	return Journey.GetProgress(config, profile, definition.Field), definition
 end
 
 function Economy.ClaimQuest(config, profile, id)
@@ -46,12 +42,15 @@ function Economy.ClaimDaily(config, profile, now)
 		local minutes = math.max(1, math.ceil((profile.DailyReadyAt - now) / 60))
 		return outcome(false, "Следующая ежедневная награда через " .. minutes .. " мин.", "info")
 	end
-	if profile.Coins > config.MaxCoins - config.DailyReward then
+	local reward, day = config.NextDailyReward(profile, now)
+	if profile.Coins > config.MaxCoins - reward then
 		return outcome(false, "Потратьте монеты, чтобы в кошельке хватило места для награды.")
 	end
-	profile.Coins += config.DailyReward
+	profile.Coins += reward
 	profile.DailyReadyAt = now + config.DailyCooldown
-	return outcome(true, "Ежедневная награда: +" .. config.DailyReward .. " монет!")
+	profile.DailyLastClaimAt = now
+	profile.DailyStreak = day
+	return outcome(true, "День " .. day .. ": +" .. reward .. " монет! Следующая награда через 24 часа.")
 end
 
 function Economy.Rebirth(config, profile)
@@ -92,11 +91,11 @@ function ProgressionService:_context(player, prompt, needsPlot)
 	if self.profiles:IsClosing() or player.Parent ~= self.players or player:GetAttribute("DataReady") ~= true then return nil end
 	local state = self.tycoon:GetState(player)
 	local profile = self.profiles:Get(player)
-	if not state or not profile or state.profile ~= profile then return nil end
+	if not state or state.leaving or not profile or state.profile ~= profile then return nil end
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local root = character and character:FindFirstChild("HumanoidRootPart")
-	if not humanoid or humanoid.Health <= 0 or not root or not root:IsA("BasePart") then return nil end
+	if not humanoid or not (humanoid.Health > 0) or not root or not root:IsA("BasePart") then return nil end
 	if prompt then
 		local pad = prompt.Parent
 		if not prompt.Enabled or not pad or not pad:IsA("BasePart") or not pad:IsDescendantOf(workspace) then return nil end
@@ -117,6 +116,10 @@ function ProgressionService:_perform(player, context, command, id)
 	local response
 	if command == "ClaimQuest" then
 		response = Economy.ClaimQuest(self.config, context.profile, id)
+	elseif command == "ClaimAchievement" then
+		response = Journey.ClaimAchievement(self.config, context.profile, id)
+	elseif command == "EquipTitle" then
+		response = Journey.EquipTitle(self.config, context.profile, id)
 	elseif command == "ClaimDaily" then
 		response = Economy.ClaimDaily(self.config, context.profile, os.time())
 	elseif command == "Rebirth" then
@@ -149,9 +152,9 @@ end
 
 function ProgressionService:_request(player, command, id)
 	-- Данные клиента лишь выбирают известное действие; цены и награды серверные.
-	local commands = { EquipHero = true, EquipWeapon = true, UpgradeWeapon = true, ClaimQuest = true, ClaimDaily = true, Rebirth = true }
+	local commands = { EquipHero = true, EquipWeapon = true, UpgradeWeapon = true, ClaimQuest = true, ClaimAchievement = true, EquipTitle = true, ClaimDaily = true, Rebirth = true }
 	if type(command) ~= "string" or not commands[command] then return end
-	if (command == "EquipHero" or command == "EquipWeapon" or command == "UpgradeWeapon" or command == "ClaimQuest") and (type(id) ~= "string" or #id > 48) then return end
+	if command ~= "ClaimDaily" and command ~= "Rebirth" and (type(id) ~= "string" or #id > 48) then return end
 	local context = self:_context(player, nil, command == "Rebirth")
 	if context then self:_perform(player, context, command, id) end
 end

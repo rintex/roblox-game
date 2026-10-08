@@ -5,12 +5,14 @@ import { fileURLToPath } from 'node:url';
 import { LuauState } from 'luau-web';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const [configSource, serviceSource] = await Promise.all([
+const [configSource, serviceSource, journeySource] = await Promise.all([
   readFile(resolve(root, 'src/shared/TycoonConfig.luau'), 'utf8'),
   readFile(resolve(root, 'src/server/Modules/TycoonService.luau'), 'utf8'),
+  readFile(resolve(root, 'src/server/Modules/PlayerJourney.luau'), 'utf8'),
 ]);
 
 const mock = String.raw`
+local workspace = {}
 local Players = {}
 local RunService = {}
 local HttpService = { JSONEncode = function() return "{}" end }
@@ -31,7 +33,7 @@ function vectorMeta.__sub(a, b)
 end
 local function fresh()
 	return { Coins = 75, XP = 0, Floor = 0, DropperTier = 0, Bank = 0, BonusReadyAt = 0,
-		Rebirths = 0, EquippedHero = "", CollectedTotal = 0, EnemiesDefeated = 0, DailyReadyAt = 0, QuestClaims = {}, Inventory = {}, EquippedWeapon = "" }
+		Rebirths = 0, EquippedHero = "", CollectedTotal = 0, EnemiesDefeated = 0, DailyReadyAt = 0, QuestClaims = {}, Inventory = {}, EquippedWeapon = "", TutorialStep = 7 }
 end
 local function player(id)
 	local p = { Parent = Players, UserId = id, DisplayName = "Player " .. id, attrs = { DataReady = true } }
@@ -49,10 +51,11 @@ local function player(id)
 	return p
 end
 local function plot(id)
-	local p = { Parent = {}, Name = "Plot" .. id, attrs = { PlotId = "Plot" .. id, OwnerUserId = 0, Floor = 0 } }
+	local p = { Parent = workspace, Name = "Plot" .. id, attrs = { PlotId = "Plot" .. id, OwnerUserId = 0, Floor = 0 } }
 	function p:GetAttribute(name) return self.attrs[name] end
 	function p:SetAttribute(name, value) self.attrs[name] = value end
 	function p:FindFirstChild() return nil end
+	function p:IsDescendantOf(ancestor) return self.Parent == ancestor end
 	local prompts = {}
 	local names = { claim = "ClaimPrompt", floor = "FloorPrompt", dropper = "DropperPrompt", collect = "CollectPrompt", bonus = "BonusPrompt" }
 	for action, name in pairs(names) do
@@ -204,12 +207,40 @@ assert(promptsOne.claim.Enabled and not promptsOne.collect.Enabled and released[
 allowAction(stateB)
 service:_claim(b, one, promptsOne.claim)
 assert(service.owners[one] == stateB and stateB.plot == one and records[b].Coins == 75 and records[b].Bank == 0, "Next owner inherits no previous coins or bank")
+-- Exercise tutorial advancement through the real server mutations and sync path.
+records[b].TutorialStep = 1
+assert(service:SyncPlayer(b) and records[b].TutorialStep == 2 and records[b].XP == 10, "Owned plot advances first tutorial step on server sync")
+allowAction(stateB)
+service:_action(b, one, promptsOne.floor, "floor")
+assert(records[b].TutorialStep == 3 and records[b].Coins == 40 and records[b].XP == 40, "Real floor purchase advances tutorial with separate purchase and tutorial XP")
+records[b].Bank = 5
+allowAction(stateB)
+service:_action(b, one, promptsOne.collect, "collect")
+assert(records[b].TutorialStep == 4 and records[b].Coins == 65 and records[b].XP == 55, "First real collection advances tutorial")
+allowAction(stateB)
+service:_action(b, one, promptsOne.dropper, "dropper")
+assert(records[b].TutorialStep == 5 and records[b].Coins == 35 and records[b].XP == 70, "Generator purchase advances tutorial with server cost")
+records[b].EquippedHero = "arachna"
+service:SyncPlayer(b)
+assert(records[b].TutorialStep == 6 and records[b].Coins == 75 and records[b].XP == 90, "Unlocked equipped hero advances tutorial")
+records[b].CombatPractice = true
+service:SyncPlayer(b)
+assert(records[b].TutorialStep == 7 and records[b].Coins == 135 and records[b].XP == 115 and b:GetAttribute("TutorialStep") == 7, "Actual NPC practice flag completes tutorial and replicates progress")
+service:SyncPlayer(b)
+assert(records[b].Coins == 135 and records[b].XP == 115, "Periodic sync cannot reissue tutorial rewards")
+stateB.leaving = true
+assert(not service:SyncPlayer(b), "Sync rejects leaving state")
+stateB.leaving = false
+local currentB = records[b]
+records[b] = fresh()
+assert(not service:SyncPlayer(b), "Sync rejects stale profile reference")
+records[b] = currentB
 return true
 `;
 
 const vm = await LuauState.createAsync();
 try {
-  const source = `${mock}\nlocal Config = (function()\n${configSource}\nend)()\nlocal Service = (function()\n${serviceSource}\nend)()\n${assertions}`;
+  const source = `${mock}\nlocal Config = (function()\n${configSource}\nend)()\nlocal Journey = (function()\n${journeySource}\nend)()\nlocal script = {Parent = {WaitForChild = function(_, name) return name end}}\nlocal function require(name) assert(name == "PlayerJourney"); return Journey end\nlocal Service = (function()\n${serviceSource}\nend)()\n${assertions}`;
   const run = vm.loadstring(source, 'Tycoon economy and server guard tests', true);
   const [passed] = await run();
   if (passed !== true) throw new Error('Luau test did not finish successfully');

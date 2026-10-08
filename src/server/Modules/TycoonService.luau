@@ -1,6 +1,7 @@
 -- Авторитетная экономика и владение участками. Клиент не задаёт цены и награды.
 local TycoonService = {}
 TycoonService.__index = TycoonService
+local Journey = require(script.Parent:WaitForChild("PlayerJourney"))
 
 -- Чистые функции экономики также используются в автоматических проверках.
 local Economy = {}
@@ -159,6 +160,7 @@ function TycoonService:_sync(state)
 	if not profile or player.Parent ~= self.players then
 		return
 	end
+	local journeyEvents = Journey.Advance(self.config, profile, state.plot ~= nil)
 	state.coins.Value = profile.Coins
 	state.level.Value = self.config.GetLevel(profile.XP)
 	player:SetAttribute("Floor", profile.Floor)
@@ -175,6 +177,16 @@ function TycoonService:_sync(state)
 	player:SetAttribute("CollectedTotal", profile.CollectedTotal or 0)
 	player:SetAttribute("EnemiesDefeated", profile.EnemiesDefeated or 0)
 	player:SetAttribute("DailyReadyAt", profile.DailyReadyAt or 0)
+	player:SetAttribute("DailyStreak", profile.DailyStreak or 0)
+	local dailyReward, nextDay = self.config.NextDailyReward(profile, os.time())
+	player:SetAttribute("DailyNextReward", dailyReward)
+	player:SetAttribute("DailyNextDay", nextDay)
+	player:SetAttribute("TutorialStep", profile.TutorialStep or 1)
+	player:SetAttribute("BossDefeated", profile.BossDefeated or 0)
+	local title = self.config.GetAchievement(profile.EquippedTitle)
+	local titleOwned = title and (profile.AchievementClaims or {})[title.Id] == true
+	player:SetAttribute("EquippedTitle", titleOwned and title.Id or "")
+	player:SetAttribute("DisplayTitle", titleOwned and title.TitleReward or "")
 	player:SetAttribute("ObbyReadyAt", profile.ObbyReadyAt or 0)
 	player:SetAttribute("ObbyWins", profile.ObbyWins or 0)
 	player:SetAttribute("ObbyBestMilliseconds", profile.ObbyBestMilliseconds or 0)
@@ -182,9 +194,25 @@ function TycoonService:_sync(state)
 	player:SetAttribute("QuestCollectorDone", claims.collector == true)
 	player:SetAttribute("QuestBuilderDone", claims.builder == true)
 	player:SetAttribute("QuestFighterDone", claims.fighter == true)
+	for _, quest in ipairs(self.config.Quests) do
+		player:SetAttribute("Quest_" .. quest.Id, claims[quest.Id] == true)
+		player:SetAttribute("QuestProgress_" .. quest.Id, Journey.GetProgress(self.config, profile, quest.Field))
+	end
+	local achievementClaims = profile.AchievementClaims or {}
+	local count = 0
+	for _, achievement in ipairs(self.config.Achievements) do
+		local progress = Journey.GetProgress(self.config, profile, achievement.Field)
+		local claimed = achievementClaims[achievement.Id] == true
+		if claimed then count += 1 end
+		player:SetAttribute("Achievement_" .. achievement.Id, claimed)
+		player:SetAttribute("AchievementProgress_" .. achievement.Id, progress)
+		player:SetAttribute("AchievementReady_" .. achievement.Id, not claimed and progress >= achievement.Target)
+	end
+	player:SetAttribute("AchievementsClaimed", count)
 	if state.plot then
 		self:_refreshPlot(state.plot)
 	end
+	for _, event in ipairs(journeyEvents) do self:_notify(player, event.text, event.kind) end
 end
 
 function TycoonService:_rebuild(state)
@@ -222,7 +250,8 @@ end
 
 function TycoonService:SyncPlayer(player)
 	local state = self.states[player]
-	if not state or not state.profile or not state.coins or not state.level then
+	if not state or not state.profile or state.leaving or self.profiles:IsClosing() or self.profiles:Get(player) ~= state.profile
+		or not state.coins or not state.level then
 		return false
 	end
 	self:_sync(state)
@@ -342,13 +371,13 @@ function TycoonService:_validate(player, plot, prompt, needsOwner)
 	if player:GetAttribute("DataReady") ~= true or self.profiles:Get(player) ~= state.profile then
 		return nil
 	end
-	if not plot.Parent or not prompt.Enabled or not prompt:IsDescendantOf(plot) then
+	if not plot.Parent or not plot:IsDescendantOf(workspace) or not prompt.Enabled or not prompt:IsDescendantOf(plot) then
 		return nil
 	end
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local root = character and character:FindFirstChild("HumanoidRootPart")
-	if not humanoid or humanoid.Health <= 0 or not root or not root:IsA("BasePart") then
+	if not humanoid or not (humanoid.Health > 0) or not root or not root:IsA("BasePart") then
 		return nil
 	end
 	local pad = prompt.Parent
