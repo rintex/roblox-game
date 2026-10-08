@@ -1,5 +1,18 @@
 -- Built-in material textures and drawn costume surfaces need no uploaded IDs.
 local Style = {}
+-- Warm stone, deep blue metal and mint accents are shared by the whole city.
+Style.Palette = {
+	Ink = Color3.fromRGB(34, 48, 66),
+	Stone = Color3.fromRGB(232, 227, 211),
+	Paper = Color3.fromRGB(247, 241, 224),
+	Mint = Color3.fromRGB(92, 217, 191),
+	Gold = Color3.fromRGB(246, 190, 76),
+	Road = Color3.fromRGB(68, 79, 90),
+	Grass = Color3.fromRGB(88, 144, 112),
+	Wood = Color3.fromRGB(146, 105, 73),
+	Window = Color3.fromRGB(130, 192, 211),
+	Danger = Color3.fromRGB(225, 101, 84),
+}
 local function child(parent, className, name)
 	local object = parent:FindFirstChild(name)
 	if not object then
@@ -42,6 +55,35 @@ local function line(root, name, x1, y1, x2, y2, width, color)
 	local dx, dy = x2 - x1, y2 - y1
 	return rectangle(root, name, (x1 + x2) / 2, (y1 + y2) / 2,
 		math.sqrt(dx * dx + dy * dy), width, color, math.deg(math.atan2(dy, dx)))
+end
+function Style.Sign(part, title, subtitle, accent, face)
+	local root = canvas(part, "CitySign", Style.Palette.Ink)
+	root.Parent.Face = face or Enum.NormalId.Front
+	root.Parent.CanvasSize = Vector2.new(512, 192)
+	root.Parent.LightInfluence = 0.15
+	root.Parent.MaxDistance = 100
+	rectangle(root, "Accent", 14, 96, 10, 166, accent or Style.Palette.Mint)
+	local heading = child(root, "TextLabel", "Title")
+	heading.Size = UDim2.new(1, -46, 0, 112)
+	heading.Position = UDim2.new(0, 32, 0, 10)
+	heading.BackgroundTransparency = 1
+	heading.Font = Enum.Font.GothamBold
+	heading.TextColor3 = Style.Palette.Paper
+	heading.TextScaled = true
+	heading.TextWrapped = true
+	heading.Text = title
+	heading.ZIndex = 3
+	local detail = child(root, "TextLabel", "Subtitle")
+	detail.Size = UDim2.new(1, -46, 0, 43)
+	detail.Position = UDim2.new(0, 32, 0, 131)
+	detail.BackgroundTransparency = 1
+	detail.Font = Enum.Font.GothamBold
+	detail.TextColor3 = accent or Style.Palette.Mint
+	detail.TextScaled = true
+	detail.TextWrapped = true
+	detail.Text = subtitle or ""
+	detail.ZIndex = 3
+	return root.Parent
 end
 local BLACK = Color3.fromRGB(18, 22, 30)
 local WHITE = Color3.fromRGB(245, 247, 239)
@@ -163,7 +205,7 @@ function Style.Chest(part, kind)
 end
 function Style.Material(object)
 	local name = object.Name
-	if string.find(name, "Wall") or string.find(name, "FrontLeft") or string.find(name, "FrontRight")
+	if string.match(name, "^LeftWall%d+$") or string.match(name, "^RightWall%d+$") or string.find(name, "FrontLeft") or string.find(name, "FrontRight")
 		or string.find(name, "RearLeft") or string.find(name, "RearRight") or string.find(name, "RearMiddle") then
 		object.Material = Enum.Material.Brick
 	elseif string.match(name, "Path$") or string.match(name, "^HouseRoad") or string.match(name, "^HouseEntry") then object.Material = Enum.Material.Asphalt

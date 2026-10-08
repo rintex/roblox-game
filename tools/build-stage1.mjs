@@ -106,6 +106,37 @@ assert(#obby:FindFirstChild('Platforms'):GetChildren()==16, 'Expected sixteen ob
 local obbyBefore=#Workspace:GetDescendants()
 obbyWorld.Build(Workspace,config)
 assert(#Workspace:GetDescendants()==obbyBefore, 'Obby construction must be repeatable')
+local function partCount()
+ local total=0
+ for _,object in ipairs(Workspace:GetDescendants()) do if object:IsA('BasePart') then total+=1 end end
+ return total
+end
+local emptyParts=partCount()
+assert(emptyParts<=900, 'Empty city exceeded static geometry budget; review decoration growth')
+for _,plot in ipairs(plots) do
+ local structure=world.UpdatePlot(plot,3,'Geometry check')
+ for floor=1,3 do
+  local room=structure:FindFirstChild('Floor'..floor)
+  assert(room and room.Size.X>=42 and room.Size.Z>=36, 'House rooms must retain their spacious footprint')
+ end
+ for floor=2,3 do
+  local previousTop=0.8+(floor-2)*12
+  for step=1,24 do
+   local tread=structure:FindFirstChild('Stair'..floor..'Step'..step)
+   assert(tread and tread.CanCollide and tread.Size.X>=5, 'Missing climbable stair tread')
+   local top=tread.Position.Y+tread.Size.Y/2
+   assert(math.abs(top-previousTop-.5)<.0001, 'Stair risers must stay half a stud')
+   previousTop=top
+  end
+  local landing=structure:FindFirstChild('StairLanding'..floor)
+  assert(math.abs(landing.Position.Y+landing.Size.Y/2-previousTop)<.0001, 'Landing must align with final tread')
+ end
+ assert(math.abs(plot:FindFirstChild('BonusPad').Position.Y-26.7)<.0001, 'Bonus prompt must remain on third floor')
+end
+local completedParts=partCount()
+assert(completedParts<=2600, 'Six completed homes exceeded static geometry budget; review decoration growth')
+for _,plot in ipairs(plots) do world.UpdatePlot(plot,0,'') end
+assert(partCount()==emptyParts, 'Geometry validation must leave the playable city empty')
 return exportMap()`, 'Hero city place builder', true);
   const result = await execute();
   baked = plainValue(result[0]);

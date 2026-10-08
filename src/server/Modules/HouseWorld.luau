@@ -16,11 +16,11 @@ local HOUSE_COLORS = {
 	Color3.fromRGB(212, 206, 233),
 }
 
-local CREAM = Color3.fromRGB(247, 238, 216)
-local WOOD = Color3.fromRGB(151, 115, 83)
-local DARK = Color3.fromRGB(56, 77, 94)
-local GOLD = Color3.fromRGB(255, 199, 66)
-local CYAN = Color3.fromRGB(77, 221, 218)
+local CREAM = Style.Palette.Paper
+local WOOD = Style.Palette.Wood
+local DARK = Style.Palette.Ink
+local GOLD = Style.Palette.Gold
+local CYAN = Style.Palette.Window
 
 local function child(parent, className, name)
 	local existing = parent:FindFirstChild(name)
@@ -103,13 +103,46 @@ end
 -- A door is an opening in the wall, so the entrance is always walkable.
 local function frontWall(structure, origin, floor, y, wallColor)
 	local z = -10
-	part(structure, "FrontLeft" .. floor, Vector3.new(10, 10.5, 0.7), origin + Vector3.new(-9, y + 5.25, z), wallColor)
-	part(structure, "FrontRight" .. floor, Vector3.new(10, 10.5, 0.7), origin + Vector3.new(9, y + 5.25, z), wallColor)
+	for _, side in ipairs({ -1, 1 }) do
+		local suffix = (if side < 0 then "Left" else "Right") .. floor
+		-- Real window openings let daylight reach the room, with a clear door gap.
+		part(structure, "Front" .. suffix, Vector3.new(2.2, 10.5, 0.7), origin + Vector3.new(side * 12.9, y + 5.25, z), wallColor, Enum.Material.Brick)
+		part(structure, "FrontInner" .. suffix, Vector3.new(2.2, 10.5, 0.7), origin + Vector3.new(side * 5.1, y + 5.25, z), wallColor, Enum.Material.Brick)
+		part(structure, "FrontWindowBase" .. suffix, Vector3.new(5.6, 2.5, 0.7), origin + Vector3.new(side * 9, y + 1.25, z), wallColor, Enum.Material.Brick)
+		part(structure, "FrontWindowTop" .. suffix, Vector3.new(5.6, 2, 0.7), origin + Vector3.new(side * 9, y + 9.5, z), wallColor, Enum.Material.Brick)
+		local pane = part(structure, "StreetWindow" .. suffix, Vector3.new(5.6, 6, 0.22), origin + Vector3.new(side * 9, y + 5.5, z), CYAN, Enum.Material.Glass)
+		pane.Transparency = 0.42
+		part(structure, "StreetWindowSill" .. suffix, Vector3.new(6, 0.22, 1), origin + Vector3.new(side * 9, y + 2.5, z - 0.22), CREAM, Enum.Material.Concrete, false)
+		part(structure, "StreetWindowHeader" .. suffix, Vector3.new(6, 0.22, 0.9), origin + Vector3.new(side * 9, y + 8.5, z - 0.12), CREAM, Enum.Material.Concrete, false)
+		part(structure, "StreetWindowMullion" .. suffix, Vector3.new(0.13, 5.8, 0.32), origin + Vector3.new(side * 9, y + 5.5, z - 0.16), CREAM, Enum.Material.Metal, false)
+	end
 	part(structure, "FrontLintel" .. floor, Vector3.new(8, 3, 0.7), origin + Vector3.new(0, y + 9, z), CREAM)
 	if floor > 1 then
 		-- A closed upper window; only the ground floor is the main entrance.
 		local pane = part(structure, "FrontWindow" .. floor, Vector3.new(7.5, 6.8, 0.25), origin + Vector3.new(0, y + 3.9, z), CYAN, Enum.Material.Glass)
 		pane.Transparency = 0.5
+	end
+end
+
+local function buildInterior(structure, origin, floor, top, wallColor)
+	-- Furnish the left wall; the central doorway and both stair exits stay clear.
+	local accent = if floor == 3 then GOLD else Style.Palette.Mint
+	part(structure, "WorkDesk" .. floor, Vector3.new(3.2, 0.35, 5), origin + Vector3.new(-11.8, top + 2.25, -3), WOOD, Enum.Material.WoodPlanks)
+	for _, z in ipairs({ -4.8, -1.2 }) do
+		part(structure, "DeskLeg" .. floor .. "_" .. z, Vector3.new(0.35, 2, 0.35), origin + Vector3.new(-11.8, top + 1.05, z), DARK, Enum.Material.Metal)
+	end
+	part(structure, "WorkScreen" .. floor, Vector3.new(1.4, 1.3, 0.2), origin + Vector3.new(-11.6, top + 3.05, -4.4), accent, Enum.Material.Neon, false)
+	local plaque = part(structure, "InteriorPlaque" .. floor, Vector3.new(5, 1.9, 0.15), origin + Vector3.new(0, top + 6.2, 13.5), DARK, Enum.Material.Metal, false)
+	Style.Sign(plaque, if floor == 3 then "ШТАБ ГЕРОЯ" elseif floor == 2 then "МАСТЕРСКАЯ" else "ПЕРВАЯ БАЗА", "ЭТАЖ " .. floor .. " / 3", accent)
+	part(structure, "CeilingPanel" .. floor, Vector3.new(4, 0.08, 4), origin + Vector3.new(0, top + 10.8, 0), CREAM, Enum.Material.Neon, false)
+	if floor < 3 then
+		part(structure, "InteriorRug" .. floor, Vector3.new(9, 0.04, 8), origin + Vector3.new(5, top + 0.03, 0), wallColor, Enum.Material.Fabric, false)
+	end
+	for _, side in ipairs({ -1, 1 }) do
+		local width = if floor == 3 then 7.7 else 8.7
+		local x = if floor == 3 then 6 else 5
+		local depth = if floor == 3 then 2.25 else 3.75
+		part(structure, "RugBorder" .. floor .. side, Vector3.new(width, 0.02, 0.18), origin + Vector3.new(x, top + 0.058, side * depth), CREAM, Enum.Material.Fabric, false)
 	end
 end
 
@@ -140,10 +173,10 @@ local function rightWall(structure, origin, floor, y, wallColor)
 	local beforeLength = doorCenter - 3 - (-10)
 	local afterLength = 14 - (doorCenter + 3)
 	if beforeLength > 0 then
-		part(structure, "RightFront" .. floor, Vector3.new(0.7, 10.5, beforeLength), origin + Vector3.new(14, y + 5.25, -10 + beforeLength / 2), wallColor)
+		part(structure, "RightFront" .. floor, Vector3.new(0.7, 10.5, beforeLength), origin + Vector3.new(14, y + 5.25, -10 + beforeLength / 2), wallColor, Enum.Material.Brick)
 	end
 	if afterLength > 0 then
-		part(structure, "RightRear" .. floor, Vector3.new(0.7, 10.5, afterLength), origin + Vector3.new(14, y + 5.25, doorCenter + 3 + afterLength / 2), wallColor)
+		part(structure, "RightRear" .. floor, Vector3.new(0.7, 10.5, afterLength), origin + Vector3.new(14, y + 5.25, doorCenter + 3 + afterLength / 2), wallColor, Enum.Material.Brick)
 	end
 	part(structure, "SideDoorLintel" .. floor, Vector3.new(0.7, 3, 6), origin + Vector3.new(14, y + 9, doorCenter), CREAM)
 end
@@ -247,13 +280,14 @@ function World.UpdatePlot(plot, floorNumber, ownerName)
 		part(structure, "LeftWall" .. floor, Vector3.new(0.7, 10.5, 24), origin + Vector3.new(-14, top + 5.25, 2), wallColor)
 		part(structure, "FrontCornice" .. floor, Vector3.new(29, 0.5, 0.9), origin + Vector3.new(0, top + 10.75, -10), CREAM)
 		part(structure, "RearCornice" .. floor, Vector3.new(29, 0.5, 0.9), origin + Vector3.new(0, top + 10.75, 14), CREAM)
+		part(structure, "LeftCornice" .. floor, Vector3.new(0.9, 0.5, 24), origin + Vector3.new(-14, top + 10.75, 2), CREAM)
 		buildDropper(structure, origin, floor, top)
 		-- Stone frames, brickwork and timber floors use built-in Roblox textures.
 		for _, side in ipairs({-1, 1}) do
 			part(structure, "CornerTrim" .. floor .. "_" .. side, Vector3.new(0.6, 10.5, 0.8), origin + Vector3.new(side * 13.65, top + 5.25, -10.45), CREAM, Enum.Material.Concrete, false)
 			part(structure, "WindowSill" .. floor .. "_" .. side, Vector3.new(4, 0.25, 1.3), origin + Vector3.new(side * 5.5, top + 2.4, 14.3), CREAM, Enum.Material.Concrete, false)
 		end
-		part(structure, "InteriorRug" .. floor, Vector3.new(9, 0.04, 8), origin + Vector3.new(5, top + 0.03, 0), wallColor, Enum.Material.Fabric, false)
+		buildInterior(structure, origin, floor, top, wallColor)
 		if floor >= 2 then
 			buildStairs(structure, origin, floor)
 		end
@@ -262,6 +296,13 @@ function World.UpdatePlot(plot, floorNumber, ownerName)
 		local roofTop = 0.8 + (floors - 1) * 12 + 11.5
 		part(structure, "Roof", Vector3.new(30, 0.5, 26), origin + Vector3.new(0, roofTop, 2), DARK, Enum.Material.Slate)
 		part(structure, "RoofAccent", Vector3.new(28, 0.15, 24), origin + Vector3.new(0, roofTop + 0.325, 2), if floors == 3 then GOLD else wallColor)
+		for _, side in ipairs({ -1, 1 }) do
+			part(structure, "RoofParapetX" .. side, Vector3.new(0.5, 0.9, 25), origin + Vector3.new(side * 14.5, roofTop + 0.6, 2), CREAM, Enum.Material.Concrete)
+			part(structure, "RoofParapetZ" .. side, Vector3.new(29, 0.9, 0.5), origin + Vector3.new(0, roofTop + 0.6, 2 + side * 12.5), CREAM, Enum.Material.Concrete)
+		end
+		part(structure, "RoofVent", Vector3.new(2.4, 1.1, 2.4), origin + Vector3.new(-9, roofTop + 0.95, 9), DARK, Enum.Material.Metal)
+		part(structure, "RoofVentCap", Vector3.new(2.9, 0.25, 2.9), origin + Vector3.new(-9, roofTop + 1.6, 9), CREAM, Enum.Material.Metal)
+		part(structure, "RoofSkylight", Vector3.new(6, 0.18, 4), origin + Vector3.new(4, roofTop + 0.52, 4), CYAN, Enum.Material.Glass, false).Transparency = 0.35
 	end
 	if floors == 3 then
 		buildThirdFloorExtras(structure, origin, 24.8)
@@ -321,10 +362,19 @@ function World.BuildPlots(workspace, config)
 		local base = part(plot, "Base", Vector3.new(44, 0.3, 44), origin + Vector3.new(0, 0.15, 0), Color3.fromRGB(166, 191, 144), Enum.Material.Grass)
 		plot.PrimaryPart = base
 		part(plot, "FrontWalk", Vector3.new(30, 0.1, 10), origin + Vector3.new(0, 0.35, -16), CREAM, Enum.Material.Concrete)
+		for _, side in ipairs({ -1, 1 }) do
+			part(plot, "LotEdge" .. side, Vector3.new(0.3, 0.2, 43), origin + Vector3.new(side * 21.5, 0.4, 0), CREAM, Enum.Material.Concrete, false)
+		end
+		local number = part(plot, "HouseNumber", Vector3.new(3.3, 1.3, 0.2), origin + Vector3.new(12.5, 2.1, -19.5), DARK, Enum.Material.Metal, false)
+		Style.Sign(number, "ДОМ " .. index, "ТВОЙ КВАРТАЛ", Style.Palette.Mint)
 		for _, side in ipairs({-1, 1}) do
-			part(plot, "GardenBed" .. side, Vector3.new(5, 0.6, 11), origin + Vector3.new(side * 18.5, 0.55, -8), DARK, Enum.Material.Slate)
+			-- Keep the right planter in the front yard, away from both stair lanes.
+			local gardenZ = if side > 0 then -17 else -8
+			local depth = if side > 0 then 6 else 11
+			part(plot, "GardenBed" .. side, Vector3.new(5, 0.6, depth), origin + Vector3.new(side * 18.5, 0.55, gardenZ), DARK, Enum.Material.Slate)
 			for shrub = 1, 3 do
-				local bush = part(plot, "GardenShrub" .. side .. "_" .. shrub, Vector3.new(3.2, 2.1, 3.2), origin + Vector3.new(side * 18.5, 1.6, -14 + shrub * 3), Color3.fromRGB(65, 130, 84), Enum.Material.Grass, false)
+				local z = if side > 0 then gardenZ + (shrub - 2) * 1.8 else -14 + shrub * 3
+				local bush = part(plot, "GardenShrub" .. side .. "_" .. shrub, Vector3.new(3.2, 2.1, 3.2), origin + Vector3.new(side * 18.5, 1.6, z), Color3.fromRGB(65, 130, 84), Enum.Material.Grass, false)
 				bush.Shape = Enum.PartType.Ball
 			end
 		end

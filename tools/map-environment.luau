@@ -39,7 +39,7 @@ end }
 local Instance = {}
 local allowed = { Workspace=true, Lighting=true, Folder=true, Model=true, Part=true, SpawnLocation=true,
  ProximityPrompt=true, BillboardGui=true, TextLabel=true, Atmosphere=true, BloomEffect=true, ColorCorrectionEffect=true,
- SurfaceGui=true, Frame=true, UICorner=true }
+ SurfaceGui=true, Frame=true, UICorner=true, Sky=true }
 function Instance.new(class)
  assert(allowed[class], 'Unsupported build class: ' .. class)
  local object = setmetatable({ClassName=class, _attributes={}}, instanceMeta)
@@ -86,6 +86,8 @@ local commonProperties = {
  'Intensity', 'Threshold', 'Contrast', 'Saturation', 'TintColor',
  'Face', 'SizingMode', 'CanvasSize', 'LightInfluence', 'Position', 'AnchorPoint', 'Rotation', 'ClipsDescendants', 'CornerRadius',
  'ZIndex', 'ZIndexBehavior',
+ 'SkyboxBk', 'SkyboxDn', 'SkyboxFt', 'SkyboxLf', 'SkyboxRt', 'SkyboxUp',
+ 'CelestialBodiesShown', 'StarCount', 'SunAngularSize', 'MoonAngularSize',
 }
 local function encode(object)
  local tree = { ['$className']=object.ClassName }

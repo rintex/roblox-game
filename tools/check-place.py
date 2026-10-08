@@ -46,6 +46,7 @@ for item in items:
 
 expected_scripts = 0
 expected_remotes = 0
+mapped_sources = set()
 def check_project(node, instance):
     global expected_scripts, expected_remotes
     if '$path' in node:
@@ -53,6 +54,7 @@ def check_project(node, instance):
         expected_class = 'LocalScript' if source.endswith('.client.luau') else 'Script' if source.endswith('.server.luau') else 'ModuleScript'
         assert instance.attrib['class'] == expected_class
         assert props(instance)['Source'].text == (ROOT / source).read_text(), source
+        mapped_sources.add(source)
         expected_scripts += 1
     elif '$className' in node:
         assert instance.attrib['class'] == node['$className']
@@ -68,6 +70,12 @@ for key, value in project['tree'].items():
         check_project(value, child(place, key))
 assert sum(i.attrib['class'] in ('Script', 'ModuleScript', 'LocalScript') for i in items) == expected_scripts
 assert sum(i.attrib['class'] == 'RemoteEvent' for i in items) == expected_remotes
+assert mapped_sources == {str(p.relative_to(ROOT)) for p in (ROOT / 'src').rglob('*.luau')}, 'Production source is missing from the place project'
+lighting = child(place, 'Lighting')
+for effect, kind in [('HeroCityAtmosphere', 'Atmosphere'), ('HeroCityBloom', 'BloomEffect'),
+                     ('HeroCityColor', 'ColorCorrectionEffect'), ('HeroCitySky', 'Sky')]:
+    assert child(lighting, effect).attrib['class'] == kind
+assert sum(i.attrib['class'] in ('Part', 'SpawnLocation') for i in items) <= 900, 'Empty city geometry budget exceeded'
 camera = child(workspace, 'Camera')
 assert props(workspace)['CurrentCamera'].text == camera.attrib['referent']
 assert (ROOT / 'build/QuarterHeroes.rbxl').read_bytes()[:14] == b'<roblox!\x89\xff\r\n\x1a\n'

@@ -2,10 +2,10 @@
 local HeroWorld = {}
 local Style = require(script.Parent:WaitForChild("VisualStyle"))
 
-local DARK = Color3.fromRGB(34, 48, 70)
-local CREAM = Color3.fromRGB(243, 239, 220)
-local GOLD = Color3.fromRGB(255, 201, 76)
-local CYAN = Color3.fromRGB(83, 224, 234)
+local DARK = Style.Palette.Ink
+local CREAM = Style.Palette.Paper
+local GOLD = Style.Palette.Gold
+local CYAN = Style.Palette.Mint
 local VIOLET = Color3.fromRGB(176, 125, 242)
 
 local function child(parent, className, name)
@@ -33,7 +33,7 @@ local function part(parent, name, size, position, color, material, collide)
 	object.BottomSurface = Enum.SurfaceType.Smooth
 	object.CanCollide = collide ~= false
 	object.CanTouch = false
-	object.CanQuery = true
+	object.CanQuery = object.CanCollide
 	return object
 end
 
@@ -53,6 +53,7 @@ local function label(parent, name, text, offset, width, height)
 	textLabel.TextScaled = true
 	textLabel.TextWrapped = true
 	textLabel.Text = text
+	child(textLabel, "UICorner", "Round").CornerRadius = UDim.new(0, 8)
 	return textLabel
 end
 
@@ -79,16 +80,23 @@ local function gate(parent, name, x, z, color)
 		part(model, suffix .. "Glow", Vector3.new(0.2, 7, 1.6), Vector3.new(x + side * 4.45, 4.5, z), color, Enum.Material.Neon, false)
 	end
 	part(model, "Top", Vector3.new(11, 1, 1.5), Vector3.new(x, 9.5, z), color, Enum.Material.Neon)
+	part(model, "GateFoundation", Vector3.new(12, 0.18, 4), Vector3.new(x, 0.1, z), DARK, Enum.Material.Slate)
+	-- A translucent membrane gives the portal a visible surface without blocking it.
+	local veil = part(model, "PortalVeil", Vector3.new(8.7, 7.3, 0.15), Vector3.new(x, 4.3, z), color, Enum.Material.Glass, false)
+	veil.Transparency = 0.88
+	for band = 1, 3 do
+		part(model, "PortalBand" .. band, Vector3.new(7.8 - band, 0.035, 0.12), Vector3.new(x, 1 + band * 2, z - 0.1), color, Enum.Material.Neon, false).Transparency = 0.42
+	end
 	return model
 end
 
 local function buildStands(campus, decor)
 	stand(campus, "DailyStand", Vector3.new(-20, 0.55, 18), GOLD, "ClaimDailyPrompt", "Получить подарок", "ЕЖЕДНЕВНЫЙ ПОДАРОК")
 	stand(campus, "QuestStand", Vector3.new(20, 0.55, 18), CYAN, "QuestPrompt", "Посмотреть задания", "ЗАДАНИЯ ГЕРОЯ")
-	stand(campus, "ArenaPortal", Vector3.new(0, 0.55, -43), Color3.fromRGB(240, 105, 104), "EnterArenaPrompt", "Войти на арену", "ОПАСНАЯ ЗОНА / БАНДИТЫ И PvP")
+	stand(campus, "ArenaPortal", Vector3.new(0, 0.55, -43), Style.Palette.Danger, "EnterArenaPrompt", "Войти на арену", "ОПАСНАЯ ЗОНА / БАНДИТЫ И PvP")
 	stand(campus, "ReturnStand", Vector3.new(35, 0.55, -88), CYAN, "ReturnPrompt", "Вернуться домой", "ВЕРНУТЬСЯ В БЕЗОПАСНУЮ ЗОНУ")
 	stand(campus, "RebirthStand", Vector3.new(-26, 0.55, 0), VIOLET, "RebirthPrompt", "Перерождение", "ПЕРЕРОЖДЕНИЕ")
-	gate(decor, "ArenaGate", 0, -47, Color3.fromRGB(240, 105, 104))
+	gate(decor, "ArenaGate", 0, -47, Style.Palette.Danger)
 	gate(decor, "ReturnGate", 35, -91, CYAN)
 	gate(decor, "RebirthGate", -26, -3, VIOLET)
 	part(decor, "DailyGift", Vector3.new(3.5, 2.8, 3), Vector3.new(-20, 2.2, 21.1), GOLD)
@@ -111,6 +119,11 @@ local function buildHero(gallery, definition, index)
 	local base = part(model, "Pedestal", Vector3.new(8, 0.6, 8), origin + Vector3.new(0, 0.3, 0), DARK, Enum.Material.Concrete)
 	base.CanTouch = true
 	part(model, "PedestalGlow", Vector3.new(7.5, 0.08, 7.5), origin + Vector3.new(0, 0.64, 0), color, Enum.Material.Neon, false)
+	model:FindFirstChild("PedestalGlow").Transparency = 0.62
+	for _, side in ipairs({ -1, 1 }) do
+		part(model, "PedestalRimX" .. side, Vector3.new(0.14, 0.05, 7.3), origin + Vector3.new(side * 3.55, 0.72, 0), color, Enum.Material.Neon, false)
+		part(model, "PedestalRimZ" .. side, Vector3.new(7.3, 0.05, 0.14), origin + Vector3.new(0, 0.72, side * 3.55), color, Enum.Material.Neon, false)
+	end
 	for _, side in ipairs({ -1, 1 }) do
 		local suffix = if side < 0 then "Left" else "Right"
 		part(model, suffix .. "Leg", Vector3.new(0.8, 2.2, 1), origin + Vector3.new(side * 0.55, 1.8, 0), DARK, Enum.Material.SmoothPlastic, false)
@@ -163,6 +176,14 @@ local function buildArena(campus)
 	end
 	-- Lines decorate the floor without adding barriers inside the battle area.
 	part(arena, "CenterLine", Vector3.new(88, 0.02, 0.15), Vector3.new(0, 0.25, -120), CREAM, Enum.Material.SmoothPlastic, false)
+	-- Surface-only markings preserve the clear movement/line-of-sight paths for AI.
+	for _, side in ipairs({ -1, 1 }) do
+		part(arena, "BattleLine" .. side, Vector3.new(0.12, 0.025, 61), Vector3.new(side * 37, 0.26, -120), CREAM, Enum.Material.SmoothPlastic, false)
+		part(arena, "BossZoneEdge" .. side, Vector3.new(19, 0.025, 0.18), Vector3.new(0, 0.26, -148 + side * 5), Style.Palette.Danger, Enum.Material.Neon, false)
+		part(arena, "BossZoneSide" .. side, Vector3.new(0.18, 0.025, 10), Vector3.new(side * 9.5, 0.26, -148), Style.Palette.Danger, Enum.Material.Neon, false)
+	end
+	local warning = part(arena, "BossSign", Vector3.new(14, 2.4, 0.25), Vector3.new(0, 6.8, -159), DARK, Enum.Material.Metal, false)
+	Style.Sign(warning, "ГЛАВАРЬ БАНДЫ", "СЛЕДИ ЗА ЗОНОЙ УДАРА", Style.Palette.Danger, Enum.NormalId.Back)
 	for index, position in ipairs({ Vector3.new(-46, 4.5, -86), Vector3.new(46, 4.5, -86), Vector3.new(-46, 4.5, -154), Vector3.new(46, 4.5, -154) }) do
 		part(arena, "LampPost" .. index, Vector3.new(0.6, 9, 0.6), position, DARK, Enum.Material.Metal)
 		part(arena, "Lamp" .. index, Vector3.new(2, 0.6, 2), position + Vector3.new(0, 4.7, 0), CYAN, Enum.Material.Neon, false)
@@ -172,8 +193,9 @@ end
 
 local function buildCityDecor(campus, config)
  local decor=child(campus,"Folder","Neighborhood")
- local sign=part(decor,"WelcomeSign",Vector3.new(18,4,0.5),Vector3.new(0,7,-23),DARK,Enum.Material.WoodPlanks,false)
- label(sign,"WelcomeLabel",config.GameTitle.."\nСТРОЙ · ПРЫГАЙ · СРАЖАЙСЯ",Vector3.new(0,1,0),340,85)
+ local sign=part(decor,"WelcomeSign",Vector3.new(18,4,0.5),Vector3.new(0,7,-23),DARK,Enum.Material.Metal,false)
+ local oldLabel=sign:FindFirstChild("WelcomeLabel");if oldLabel then oldLabel:Destroy() end
+ Style.Sign(sign,config.GameTitle,"СТРОЙ · ПРЫГАЙ · СРАЖАЙСЯ",CYAN,Enum.NormalId.Back)
  for _,side in ipairs({-1,1}) do
   part(decor,"SignPost"..side,Vector3.new(0.5,8,0.5),Vector3.new(side*7,4,-23),DARK,Enum.Material.Metal)
  end
@@ -198,6 +220,30 @@ local function buildCityDecor(campus, config)
   part(decor,"BenchSeat"..index,Vector3.new(7,0.4,2),position+Vector3.new(0,1.4,0),Color3.fromRGB(146,102,71),Enum.Material.WoodPlanks)
   part(decor,"BenchBack"..index,Vector3.new(7,1.4,0.3),position+Vector3.new(0,2.3,0.9),Color3.fromRGB(146,102,71),Enum.Material.WoodPlanks)
   for _,side in ipairs({-1,1}) do part(decor,"BenchLeg"..index..side,Vector3.new(0.4,1.3,1.5),position+Vector3.new(side*2.8,0.7,0),DARK,Enum.Material.Metal) end
+ end
+ -- Frame the costume gallery as one readable destination, rather than loose blocks.
+ part(decor,"GalleryWalk",Vector3.new(47,0.18,51),Vector3.new(55,0.09,6),CREAM,Enum.Material.Concrete,false)
+ part(decor,"GalleryFrontBorder",Vector3.new(47,0.04,0.3),Vector3.new(55,0.2,-19.3),CYAN,Enum.Material.Neon,false)
+ part(decor,"GalleryBackBorder",Vector3.new(47,0.04,0.3),Vector3.new(55,0.2,31.3),CYAN,Enum.Material.Neon,false)
+ local gallerySign=part(decor,"GallerySign",Vector3.new(18,3,0.25),Vector3.new(55,8,-22),DARK,Enum.Material.Metal,false)
+ Style.Sign(gallerySign,"ГАРДЕРОБ ГЕРОЕВ","НАСТУПИ НА ДОСТУПНЫЙ КОСТЮМ",CYAN,Enum.NormalId.Back)
+ -- Decorative shopfronts sit outside activities and have no fake shop prompts.
+ local storefronts={
+  {X=-66,Z=37,Title="МАСТЕРСКАЯ",Detail="ДОМА · ГЕНЕРАТОРЫ",Color=CYAN},
+  {X=67,Z=47,Title="АРСЕНАЛ",Detail="ОРУЖИЕ В ТВОЁМ МЕНЮ",Color=GOLD},
+ }
+ for index,store in ipairs(storefronts) do
+  part(decor,"ShopShell"..index,Vector3.new(22,12,13),Vector3.new(store.X,6,store.Z),Color3.fromRGB(183,199,199),Enum.Material.Brick)
+  part(decor,"ShopRoof"..index,Vector3.new(24,0.6,15),Vector3.new(store.X,12.4,store.Z),DARK,Enum.Material.Slate)
+  part(decor,"ShopAwning"..index,Vector3.new(22,0.4,3.5),Vector3.new(store.X,7,store.Z-7.5),store.Color,Enum.Material.Fabric,false)
+  for _,side in ipairs({-1,1}) do
+   local glass=part(decor,"ShopWindow"..index..side,Vector3.new(7,4.5,0.2),Vector3.new(store.X+side*6,3.5,store.Z-6.65),Style.Palette.Window,Enum.Material.Glass,false)
+   glass.Transparency=0.3
+   part(decor,"ShopWindowFrame"..index..side,Vector3.new(7.4,0.22,0.3),Vector3.new(store.X+side*6,1.1,store.Z-6.8),CREAM,Enum.Material.Metal,false)
+  end
+  part(decor,"ShopDoor"..index,Vector3.new(3,6,0.2),Vector3.new(store.X,3,store.Z-6.65),DARK,Enum.Material.Metal,false)
+  local title=part(decor,"ShopSign"..index,Vector3.new(17,2.9,0.3),Vector3.new(store.X,10,store.Z-6.75),DARK,Enum.Material.Metal,false)
+  Style.Sign(title,store.Title,store.Detail,store.Color)
  end
 end
 
