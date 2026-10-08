@@ -5,16 +5,17 @@ local Service = {}
 Service.__index = Service
 
 function Service.new(config, heroes, campus)
-	return setmetatable({config = config, heroes = heroes, campus = campus, connections = {}, lastTouch = {}}, Service)
+	return setmetatable({config = config, heroes = heroes, campus = campus, connections = {}, lastTouch = {}, destroyed = false}, Service)
 end
 
 function Service:_equip(player, pad, id)
-	if not pad:IsDescendantOf(Workspace) or player.Parent ~= Players or player:GetAttribute("ObbyActive") == true then return end
+	if self.destroyed or not pad:IsDescendantOf(Workspace) or not pad:IsDescendantOf(self.campus)
+		or player.Parent ~= Players or player:GetAttribute("ObbyActive") == true then return end
 	local profile = self.heroes:_profile(player)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local root = character and character:FindFirstChild("HumanoidRootPart")
-	if not profile or not humanoid or humanoid.Health <= 0 or not root or not root:IsA("BasePart") then return end
+	if not profile or not humanoid or not (humanoid.Health > 0) or not root or not root:IsA("BasePart") then return end
 	local delta = root.Position - pad.Position
 	-- Touch можно подделать через физику: отдельно проверяем положение тела на площадке.
 	if delta.X ~= delta.X or delta.Y ~= delta.Y or delta.Z ~= delta.Z
@@ -29,7 +30,7 @@ function Service:_equip(player, pad, id)
 end
 
 function Service:Start()
-	assert(not self.started, "CostumePadService уже запущен")
+	assert(not self.started and not self.destroyed, "CostumePadService уже запущен или завершён")
 	self.started = true
 	local gallery = self.campus:WaitForChild("Gallery")
 	for _, model in ipairs(gallery:GetChildren()) do
@@ -52,6 +53,8 @@ function Service:Start()
 end
 
 function Service:Destroy()
+	if self.destroyed then return end
+	self.destroyed = true
 	for _, connection in ipairs(self.connections) do connection:Disconnect() end
 	table.clear(self.connections)
 	table.clear(self.lastTouch)

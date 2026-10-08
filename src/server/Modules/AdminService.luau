@@ -3,7 +3,7 @@ local Players=game:GetService('Players')
 local RunService=game:GetService('RunService')
 local Service={};Service.__index=Service
 function Service.new(config,profiles,tycoon,notice,request)
- return setmetatable({config=config,profiles=profiles,tycoon=tycoon,notice=notice,request=request,states={},connections={}},Service)
+ return setmetatable({config=config,profiles=profiles,tycoon=tycoon,notice=notice,request=request,states={},connections={},destroyed=false},Service)
 end
 function Service:IsAuthorized(player)
  if RunService:IsStudio() and game.GameId==0 then return true end
@@ -17,14 +17,17 @@ function Service:IsAuthorized(player)
  return false
 end
 function Service:_add(player)
+ if self.destroyed or player.Parent~=Players or self.states[player] then return end
+ local state={authorized=false,last=-math.huge};self.states[player]=state
  local authorized=self:IsAuthorized(player)
- if player.Parent~=Players then return end
- self.states[player]={authorized=authorized,last=-math.huge}
+ -- Group ownership lookup yields; teardown must invalidate its continuation.
+ if self.destroyed or player.Parent~=Players or self.states[player]~=state then return end
+ state.authorized=authorized
  player:SetAttribute('IsGameAdmin',authorized)
 end
 function Service:_request(player,command)
  local state=self.states[player]
- if not state or not state.authorized or player.Parent~=Players or type(command)~='string' then return end
+ if self.destroyed or not state or not state.authorized or player.Parent~=Players or type(command)~='string' then return end
  if self.profiles:IsClosing() or player:GetAttribute('DataReady')~=true then return end
  local profile=self.profiles:Get(player);if not profile then return end
  local now=os.clock();if now-state.last<1 then return end;state.last=now
@@ -35,6 +38,9 @@ function Service:_request(player,command)
  elseif command=='Heal' then
   if humanoid and humanoid.Health>0 then humanoid.Health=humanoid.MaxHealth end
  elseif command=='TeleportHome' then
+  if player:GetAttribute('ObbyActive')==true then
+   self.notice:FireClient(player,{kind='info',text='Сначала заверши обби или нажми «Выйти из обби».'});return
+  end
   player:SetAttribute('ArenaCombatOptIn',false)
   local root=character and character:FindFirstChild('HumanoidRootPart')
   local target=Vector3.new(0,5,14)
@@ -49,12 +55,14 @@ function Service:_request(player,command)
  self.notice:FireClient(player,{kind='info',text='Команда владельца выполнена.'})
 end
 function Service:Start()
+ assert(not self.started and not self.destroyed,'AdminService is already running or destroyed');self.started=true
  table.insert(self.connections,self.request.OnServerEvent:Connect(function(player,command) self:_request(player,command) end))
  table.insert(self.connections,Players.PlayerAdded:Connect(function(player) task.spawn(function() self:_add(player) end) end))
  table.insert(self.connections,Players.PlayerRemoving:Connect(function(player) self.states[player]=nil end))
  for _,player in ipairs(Players:GetPlayers()) do task.spawn(function() self:_add(player) end) end
 end
 function Service:Destroy()
- for _,c in ipairs(self.connections) do c:Disconnect() end;table.clear(self.states)
+ if self.destroyed then return end;self.destroyed=true
+ for _,c in ipairs(self.connections) do c:Disconnect() end;table.clear(self.connections);table.clear(self.states)
 end
 return Service

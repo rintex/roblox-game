@@ -14,6 +14,7 @@ const mock = String.raw`
 local Players, Workspace, RunService, TweenService = {}, {}, {}, {}
 local game = {GetService=function(_,name) return ({Players=Players,Workspace=Workspace,RunService=RunService,TweenService=TweenService})[name] end}
 local Random = {new=function() return {NextNumber=function() return 0 end} end}
+local function warn() end
 local vectorMeta = {}
 local function vec(x,y,z) return setmetatable({X=x,Y=y,Z=z},vectorMeta) end
 function vectorMeta.__sub(a,b)
@@ -146,6 +147,13 @@ s:_claim(a,drop)
 assert(awardedProfile.Inventory.pulse_pistol==1 and not profiles.records[b].Inventory.pulse_pistol
  and resultCount==before,'sync reentry/profile loss')
 
+-- UI errors do not roll back an already committed profile award or reopen the crate.
+drop=reset();before=resultCount
+tycoon.SyncPlayer=function() error('simulated inventory HUD failure') end
+s:_claim(a,drop);s:_claim(b,drop);s:_claim(a,drop)
+assert(profiles.records[a].Inventory.pulse_pistol==1 and not profiles.records[b].Inventory.pulse_pistol
+ and resultCount==before+1 and drop.removed,'HUD failure must preserve one committed grant')
+
 -- Deleted and expired drops are removed; a stalled fall has a bounded timeout.
 for _,reason in ipairs({'expired','removed','timeout'}) do
  local d=reset()
@@ -170,7 +178,7 @@ try {
   const run = vm.loadstring(`${mock}\nlocal Config=(function()\n${config}\nend)()\nlocal Service=(function()\n${service}\nend)()\n${checks}`, 'LootDrop deterministic economy and server guards', true);
   const [passed] = await run();
   if (passed !== true) throw new Error('LootDrop tests did not complete');
-  console.log('LootDrop tests passed: exact weapon weights, inventory-first rewards, duplicate compensation/caps, 17 server guards, single claim, reentrant sync/profile loss, expiry/deletion/fall timeout/shutdown.');
+  console.log('LootDrop tests passed: exact weapon weights, inventory-first rewards, duplicate compensation/caps, 17 server guards, single claim, reentrant sync/profile loss, HUD sync failure, expiry/deletion/fall timeout/shutdown.');
 } finally {
   vm.destroy();
 }

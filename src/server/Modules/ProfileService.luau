@@ -36,16 +36,23 @@ function ProfileService.new(config)
 		end)
 	game:BindToClose(function()
 		self.closing = true
+		self.closingDeadline = os.clock() + 27
 		local pending = 0
 		for player in pairs(self.records) do
 			pending += 1
 			task.spawn(function()
-				self:Release(player)
+				-- A short outage must not abandon an unsaved profile while the
+				-- shutdown budget still permits another final attempt.
+				repeat
+					local released = self:Release(player)
+					if released or not self.records[player] then break end
+					if os.clock() + 0.5 >= self.closingDeadline then break end
+					task.wait(0.5)
+				until os.clock() >= self.closingDeadline
 				pending -= 1
 			end)
 		end
-		local deadline = os.clock() + 27
-		while pending > 0 and os.clock() < deadline do task.wait(0.1) end
+		while pending > 0 and os.clock() < self.closingDeadline do task.wait(0.1) end
 	end)
 	return self
 end
@@ -57,6 +64,9 @@ end
 function ProfileService:_update(key, callback)
 	local lastError
 	for attempt = 1, self.config.Persistence.MaxRetries do
+		if self.closingDeadline and os.clock() >= self.closingDeadline then
+			return false, "Время завершения сервера истекло"
+		end
 		local ok, result = pcall(function() return self.store:UpdateAsync(key, callback) end)
 		if ok then return true, result end
 		lastError = result
@@ -158,6 +168,7 @@ end
 function ProfileService:_persist(record, release)
 	if record.mode == "session" then return true end
 	local deadline = os.clock() + 12
+	if self.closingDeadline then deadline = math.min(deadline, self.closingDeadline) end
 	while record.saving and os.clock() < deadline do task.wait(0.1) end
 	if record.saving then return false, "Предыдущее сохранение ещё выполняется" end
 	if not record.ready or (record.cancelled and not release) then return false, "Профиль закрыт" end
@@ -205,6 +216,7 @@ function ProfileService:Release(player)
 	player:SetAttribute("DataReady", false)
 	-- Выход и BindToClose могут одновременно ждать одну загрузку/запись.
 	local deadline = os.clock() + 25
+	if self.closingDeadline then deadline = math.min(deadline, self.closingDeadline) end
 	while (record.loading or record.releasing) and os.clock() < deadline do task.wait(0.1) end
 	if record.loading or record.releasing then return false, "Загрузка или сохранение ещё выполняются" end
 	if self.records[player] ~= record then return true end

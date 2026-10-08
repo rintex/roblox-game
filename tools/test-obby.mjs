@@ -30,12 +30,15 @@ function Players:GetPlayerFromCharacter(char)
  for _,p in ipairs(self.list) do if p.Character==char then return p end end
 end
 local workspace={GetServerTimeNow=function() return clock+100000 end}
-local game={GetService=function(_,name) assert(name=='Players');return Players end}
+local RunService={Heartbeat=signal()}
+local function warn() end
+local game={GetService=function(_,name) if name=='RunService' then return RunService end;assert(name=='Players');return Players end}
 local function object(class,name,parent)
  local o={ClassName=class,Name=name,Parent=parent,children={}}
  function o:IsA(target) return class==target or (class=='Part' and target=='BasePart') end
  function o:FindFirstChild(target) return self.children[target] end
  function o:WaitForChild(target) return self.children[target] end
+ function o:IsDescendantOf(ancestor) local node=self.Parent;while node do if node==ancestor then return true end;node=node.Parent end;return false end
  function o:FindFirstChildOfClass(target) for _,child in pairs(self.children) do if child:IsA(target) then return child end end end
  if parent and parent.children then parent.children[name]=o end
  return o
@@ -147,12 +150,38 @@ check('full wallet retains eligibility; a later valid run can receive the reward
  assert(data.Coins==Config.MaxCoins and data.ObbyReadyAt==0)
  data.Coins=0;begin();for index=2,16 do visit(index,1) end;assert(data.Coins==300 and data.ObbyReadyAt>os.time())
 end)
+check('a HUD sync failure cannot trap a completed run or duplicate its reward',function()
+ data.ObbyReadyAt=0;local coins,wins=data.Coins,data.ObbyWins
+ local sync=tycoon.SyncPlayer;tycoon.SyncPlayer=function() error('simulated HUD failure') end
+ begin();for index=2,16 do visit(index,1) end
+ assert(not s.runs[p] and not p:GetAttribute('ObbyActive') and humanoid.WalkSpeed==26)
+ assert(data.Coins==coins+Config.Obby.RewardCoins and data.ObbyWins==wins+1)
+ visit(16,1);assert(data.Coins==coins+Config.Obby.RewardCoins and data.ObbyWins==wins+1)
+ tycoon.SyncPlayer=sync
+end)
+check('inactive runs expire without another checkpoint touch',function()
+ local coins,wins=data.Coins,data.ObbyWins;begin()
+ clock+=Config.Obby.MaximumRunSeconds+1;RunService.Heartbeat:Fire(1)
+ assert(not s.runs[p] and not p:GetAttribute('ObbyActive') and humanoid.WalkSpeed==26)
+ assert(data.Coins==coins and data.ObbyWins==wins)
+end)
+check('detached world and stage objects cannot start or advance a run',function()
+ world.Parent=nil;clock+=2;root.Position=Vector3.new(-27,4,78);prompt.Triggered:Fire(p);assert(not s.runs[p])
+ world.Parent=workspace;begin()
+ local stage=platforms.children.Stage2;stage.Parent=nil;visit(2,1);assert(s.runs[p].stage==1)
+ stage.Parent=platforms;clock+=1;request.OnServerEvent:Fire(p,'Exit');assert(not s.runs[p])
+end)
 check('exit, lock loss, timeout and leaving stop the run without rewards',function()
  begin();clock+=2;request.OnServerEvent:Fire(p,'Exit');assert(not s.runs[p] and humanoid.WalkSpeed==26)
  begin();p:SetAttribute('DataReady',false);assert(not s.runs[p]);p:SetAttribute('DataReady',true)
  begin();clock+=Config.Obby.MaximumRunSeconds+1;visit(2);assert(not s.runs[p])
  begin();Players.PlayerRemoving:Fire(p);assert(not s.runs[p] and not s.playerConnections[p])
+ root,humanoid=makeCharacter();s:_watch(p);begin();world.Parent=nil;RunService.Heartbeat:Fire(1)
+ assert(s.destroyed and not s.runs[p] and not p:GetAttribute('ObbyActive') and humanoid.WalkSpeed==26 and humanoid.JumpPower==55,
+  'Detached course cleanup must restore movement and clear the run')
+ world.Parent=workspace
  s:Destroy()
+ s:_start(p,prompt);assert(not s.runs[p]);s:Destroy()
 end)
 return checks
 `;

@@ -8,10 +8,10 @@ local function near(root,part,horizontal,vertical)
 end
 function Service.new(config,profiles,tycoon,notice,request,world,heroes)
  return setmetatable({config=config,profiles=profiles,tycoon=tycoon,notice=notice,request=request,world=world,heroes=heroes,
-  players=game:GetService('Players'),runs={},connections={},playerConnections={},lastRequest={},started=false},Service)
+  players=game:GetService('Players'),runService=game:GetService('RunService'),runs={},connections={},playerConnections={},lastRequest={},started=false,destroyed=false},Service)
 end
-function Service:_context(player)
- if self.profiles:IsClosing() or player.Parent~=self.players or player:GetAttribute('DataReady')~=true then return nil end
+function Service:_context(player,allowDetachedWorld)
+ if self.destroyed or (not allowDetachedWorld and self.world.Parent~=workspace) or self.profiles:IsClosing() or player.Parent~=self.players or player:GetAttribute('DataReady')~=true then return nil end
  local profile=self.profiles:Get(player);local state=self.tycoon:GetState(player)
  if not profile or not state or state.profile~=profile or state.leaving then return nil end
  local character=player.Character
@@ -54,7 +54,7 @@ function Service:_start(player,prompt)
 end
 function Service:_end(player,teleport)
  local run=self.runs[player];self.runs[player]=nil;self:_syncRun(player,nil)
- local profile,humanoid,root=self:_context(player)
+ local profile,humanoid,root=self:_context(player,true)
  if profile then
   if run then humanoid.JumpPower=run.jumpPower;humanoid.JumpHeight=run.jumpHeight end
   self.heroes:ApplyPerks(player,humanoid,profile)
@@ -78,7 +78,7 @@ function Service:_visit(player,index,platform)
  if now-run.startedAt>settings.MaximumRunSeconds then
   self:_end(player,true);self:_notice(player,'Забег закончился. Начни заново на стартовой площадке.');return
  end
- if not platform.Parent or not near(root,platform,5.5,5)
+ if not platform:IsDescendantOf(self.world) or not near(root,platform,5.5,5)
   or now-run.lastStageAt<settings.StageMinimumSeconds then return end
  if index==#settings.Platforms and now-run.startedAt<settings.MinimumRunSeconds then
   if not run.finishScheduled then
@@ -111,7 +111,20 @@ function Service:_visit(player,index,platform)
  end
  profile.ObbyWins=math.min(self.config.MaxCoins,(profile.ObbyWins or 0)+1)
  if (profile.ObbyBestMilliseconds or 0)==0 or milliseconds<profile.ObbyBestMilliseconds then profile.ObbyBestMilliseconds=milliseconds end
- self.tycoon:SyncPlayer(player);self:_end(player,false)
+ -- The reward is already committed to the server profile. A HUD sync failure
+ -- must never leave the run active or allow a second finish to grant it again.
+ local synced=pcall(function() self.tycoon:SyncPlayer(player) end)
+ self:_end(player,false)
+ if not synced then warn('Obby: не удалось обновить интерфейс после финиша') end
+end
+function Service:_step(now)
+ if self.destroyed then return end
+ if self.profiles:IsClosing() or self.world.Parent~=workspace then self:Destroy();return end
+ for player,run in pairs(self.runs) do
+  if now-run.startedAt>self.config.Obby.MaximumRunSeconds then
+   self:_end(player,true);self:_notice(player,'Время забега вышло. Начни заново на стартовой площадке.')
+  end
+ end
 end
 function Service:_playerFromHit(hit)
  if not hit then return nil end
@@ -143,7 +156,7 @@ function Service:_watch(player)
  }
 end
 function Service:Start()
- assert(not self.started,'ObbyService is already running');self.started=true
+ assert(not self.started and not self.destroyed,'ObbyService is already running or destroyed');self.started=true
  local platforms=self.world:FindFirstChild('Platforms')
  for index=2,#self.config.Obby.Platforms do
   local platform=platforms:FindFirstChild('Stage'..index)
@@ -170,12 +183,20 @@ function Service:Start()
   for _,connection in ipairs(self.playerConnections[player] or {}) do connection:Disconnect() end
   self.playerConnections[player]=nil
  end))
+ local accumulated=0
+ table.insert(self.connections,self.runService.Heartbeat:Connect(function(seconds)
+  accumulated+=seconds
+  if accumulated<1 then return end
+  accumulated=0;self:_step(os.clock())
+ end))
  for _,player in ipairs(self.players:GetPlayers()) do self:_watch(player) end
 end
 function Service:Destroy()
+ if self.destroyed then return end
  for player in pairs(self.runs) do self:_end(player,false) end
+ self.destroyed=true
  for _,connection in ipairs(self.connections) do connection:Disconnect() end
  for _,connections in pairs(self.playerConnections) do for _,connection in ipairs(connections) do connection:Disconnect() end end
- table.clear(self.connections);table.clear(self.playerConnections);self.started=false
+ table.clear(self.connections);table.clear(self.playerConnections);table.clear(self.lastRequest);self.started=false
 end
 return Service

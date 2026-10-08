@@ -20,10 +20,10 @@ local function clone(value)
  if type(value)~='table' then return value end
  local result={}; for k,v in pairs(value) do result[k]=clone(v) end; return result
 end
-local store={data={},calls=0,fail=false,blockBefore=false,blockAfter=false}
+local store={data={},calls=0,fail=false,failures=0,blockBefore=false,blockAfter=false}
 function store:UpdateAsync(key,callback)
  self.calls+=1
- if self.fail then error('Simulated DataStore outage') end
+ if self.fail or self.failures>0 then self.failures=math.max(0,self.failures-1);error('Simulated DataStore outage') end
  if self.blockBefore then self.blockBefore=false; coroutine.yield('store-before') end
  local proposed=callback(clone(self.data[key]))
  if proposed~=nil then self.data[key]=clone(proposed) end
@@ -210,6 +210,23 @@ check('shutdown waits for pending final save',function()
  assert(resume(closing)=='wait')
  resume(final);resume(closing)
  assert(coroutine.status(closing)=='dead' and store.data.Player_13.Session==nil)
+end)
+check('shutdown retries a failed final batch while time remains',function()
+ local s=Service.new(Config);local p=player(14);s:Load(p).Coins=987
+ store.failures=3
+ local closing=coroutine.create(binds[#binds]);assert(resume(closing)=='wait')
+ complete(taskQueue[#taskQueue]);resume(closing)
+ assert(coroutine.status(closing)=='dead' and s.records[p]==nil)
+ assert(store.data.Player_14.Data.Coins==987 and store.data.Player_14.Session==nil)
+end)
+check('permanent shutdown outage stays bounded and retains unsaved snapshot',function()
+ local s=Service.new(Config);local p=player(15);s:Load(p).Coins=654
+ local start,calls=clock,store.calls;store.fail=true
+ local closing=coroutine.create(binds[#binds]);assert(resume(closing)=='wait')
+ complete(taskQueue[#taskQueue]);resume(closing)
+ assert(coroutine.status(closing)=='dead' and clock-start<29 and store.calls-calls<40)
+ assert(s.records[p] and s.records[p].profile.Coins==654 and store.data.Player_15.Data.Coins==75)
+ store.fail=false
 end)
 return tests
 `;
