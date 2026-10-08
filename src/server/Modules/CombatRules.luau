@@ -31,6 +31,24 @@ function Rules.InArena(position)
 		and position.Z >= -158 and position.Z <= -82 and position.Y >= -2 and position.Y <= 30
 end
 
+-- Геометрия телеграфированного рывка: X/Z фиксированы при замахе.
+-- Игрок может уйти в сторону; клиент не передаёт список попавших целей.
+function Rules.SegmentDistance(position, from, to)
+	if not Rules.IsVector(position) or not Rules.IsVector(from) or not Rules.IsVector(to) then return math.huge end
+	local dx, dz = to.X - from.X, to.Z - from.Z
+	local lengthSquared = dx * dx + dz * dz
+	local alpha = if lengthSquared > 0.0001 then math.clamp(((position.X - from.X) * dx + (position.Z - from.Z) * dz) / lengthSquared, 0, 1) else 0
+	local x, z = from.X + dx * alpha, from.Z + dz * alpha
+	return math.sqrt((position.X - x) ^ 2 + (position.Z - z) ^ 2)
+end
+
+function Rules.BossPhase(health, maximum)
+	if not Rules.IsFinite(health) or not Rules.IsFinite(maximum) or maximum <= 0 then return 1 end
+	if health / maximum <= 0.30 then return 3 end
+	if health / maximum <= 0.65 then return 2 end
+	return 1
+end
+
 function Rules.PvPAllowed(attacker, target)
 	return attacker ~= nil and target ~= nil and attacker.id ~= target.id
 		and attacker.ready == true and target.ready == true

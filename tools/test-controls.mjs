@@ -31,8 +31,8 @@ local UDim2 = {new = function(...) return {...} end}
 local Enum = {
  UserInputType = {MouseButton1={Name='MouseButton1'},Touch={Name='Touch'},Gamepad1={Name='Gamepad1'}},
  UserInputState = {Begin='Begin',End='End'},
- ContextActionResult = {Sink='Sink'},
- KeyCode = {Q='Q',ButtonX='ButtonX'},
+ ContextActionResult = {Sink='Sink',Pass='Pass'},
+ KeyCode = {Q='Q',ButtonX='ButtonX',ButtonR2='ButtonR2'},
  RaycastFilterType = {Exclude='Exclude'},
 }
 local RaycastParams = {new = function() return {} end}
@@ -62,6 +62,7 @@ end
 function methods:IsA(class) return self.ClassName==class end
 function methods:GetChildren() return table.clone(self.children) end
 function methods:FindFirstChild(name) for _,child in ipairs(self.children) do if child.Name==name then return child end end end
+function methods:FindFirstChildOfClass(class) for _,child in ipairs(self.children) do if child.ClassName==class then return child end end end
 function methods:WaitForChild(name) return self:FindFirstChild(name) end
 function methods:GetAttribute(name) return self.attrs[name] end
 function methods:SetAttribute(name,value) self.attrs[name]=value;self:GetAttributeChangedSignal(name):Fire() end
@@ -81,6 +82,8 @@ end
 function methods:Fire(...) self.Event:Fire(...) end
 local Instance={new=function(class) return object(class) end}
 local player=object('Player','Tester')
+player:SetAttribute('DataReady',true);player:SetAttribute('ArenaCombatOptIn',true)
+local playerGui=object('PlayerGui','PlayerGui');playerGui.Parent=player
 player.CharacterAdded=signal();player.CharacterRemoving=signal()
 local character=object('Model','Character');player.Character=character
 local workspace=object('Workspace','Workspace');character.Parent=workspace
@@ -95,6 +98,7 @@ function camera:ViewportPointToRay(x,y)
  centerRays+=1;return {Origin=Vector3.new(0,8,12),Direction=Vector3.new(0,0,-1)}
 end
 workspace.CurrentCamera=camera
+function workspace:GetServerTimeNow() return clock+1000 end
 local raycasts=0
 function workspace:Raycast(origin,direction,parameters)
  raycasts+=1
@@ -108,18 +112,21 @@ local remote=object('RemoteEvent','SkillRequest');remote.Parent=remotes
 local shots={}
 function remote:FireServer(...) table.insert(shots,table.pack(...)) end
 local inputType=Enum.UserInputType.MouseButton1
-local input={MouseEnabled=true,GetLastInputType=function() return inputType end,
+local focused=nil
+local input={MouseEnabled=true,GetLastInputType=function() return inputType end,GetFocusedTextBox=function() return focused end,
  GetMouseLocation=function() return {X=220,Y=180} end}
 local actions,binds,unbinds={},0,0
+local actionTitle=nil
 local cas={
- BindAction=function(_,name,fn,touchButton,key,gamepad)
-  assert(touchButton==true and key=='Q' and gamepad=='ButtonX')
+ BindAction=function(_,name,fn,touchButton,key,gamepad,trigger)
+  assert(touchButton==true and key=='Q' and gamepad=='ButtonX' and trigger=='ButtonR2')
   actions[name]=fn;binds+=1
  end,
  UnbindAction=function(_,name) actions[name]=nil;unbinds+=1 end,
- SetTitle=function() end,SetPosition=function() end,
+ SetTitle=function(_,name,title) actionTitle=title end,SetPosition=function() end,
 }
-local services={Players={LocalPlayer=player},ReplicatedStorage=storage,Workspace=workspace,UserInputService=input,ContextActionService=cas}
+local heartbeat=signal()
+local services={Players={LocalPlayer=player},ReplicatedStorage=storage,Workspace=workspace,UserInputService=input,ContextActionService=cas,RunService={Heartbeat=heartbeat}}
 local game={GetService=function(_,name) assert(services[name],name);return services[name] end}
 local script=object('LocalScript','HeroControls');script.Parent=object('Folder','PlayerScripts')
 local function runController() CONTROLS_SOURCE end
@@ -147,11 +154,28 @@ assert(raycasts==2)
 clock+=1;inputType=Enum.UserInputType.MouseButton1
 actions[action](action,Enum.UserInputState.Begin,{UserInputType=Enum.UserInputType.MouseButton1})
 assert(#shots==3 and screenRays==2,'Keyboard action should use mouse aim')
+clock+=1
+playerGui:SetAttribute('QuarterModalOpen','inventory')
+assert(actions[action](action,Enum.UserInputState.Begin,{UserInputType=Enum.UserInputType.Gamepad1})=='Pass','Modal must keep gamepad navigation')
+loot.Activated:Fire();assert(#shots==3,'Tool activation cannot shoot through modal')
+playerGui:SetAttribute('QuarterModalOpen','');focused=object('TextBox','Chat')
+loot.Activated:Fire();assert(#shots==3,'Chat typing never attacks');focused=nil
+player:SetAttribute('AttackReadyAt',clock+1001)
+assert(actionTitle=='1.0 с','Server timestamp shows actual cooldown')
+loot.Activated:Fire();assert(#shots==3,'Client waits for server cooldown')
+clock+=1.1;heartbeat:Fire(0.1);assert(actionTitle=='Атака')
+inputType=Enum.UserInputType.Gamepad1
+actions[action](action,Enum.UserInputState.Begin,{UserInputType=Enum.UserInputType.Gamepad1})
+assert(#shots==4 and centerRays==2,'Gamepad aims from viewport center')
+clock+=1;player:SetAttribute('ArenaCombatOptIn',false);loot.Activated:Fire();assert(#shots==4 and actionTitle=='Арена')
+player:SetAttribute('ArenaCombatOptIn',true);player:SetAttribute('ObbyActive',true);loot.Activated:Fire();assert(#shots==4)
+player:SetAttribute('ObbyActive',false);player:SetAttribute('DataReady',false);loot.Activated:Fire();assert(#shots==4)
+player:SetAttribute('DataReady',true)
 loot.Parent=nil;assert(actions[action]==nil)
 for _,marker in ipairs({false,true,'',string.rep('x',65),123}) do
  local bad=tool(marker);bad.Parent=character
  assert(actions[action]==nil,'Malformed or legacy boolean markers must remain inactive')
- clock+=1;bad.Activated:Fire();assert(#shots==3)
+ clock+=1;bad.Activated:Fire();assert(#shots==4)
  bad.Parent=nil
 end
 local unmarked=tool(nil);unmarked.Parent=character
@@ -161,8 +185,8 @@ local delayed=tool(nil);delayed.Parent=character;delayed:SetAttribute('HeroWeapo
 assert(actions[action]);delayed:SetAttribute('HeroWeapon',true);assert(actions[action]==nil)
 delayed:SetAttribute('HeroWeapon','volt');assert(actions[action])
 script:Destroy();assert(actions[action]==nil,'Cleanup unbinds the action')
-clock+=1;delayed.Activated:Fire();assert(#shots==3,'Destroyed controller cannot send requests')
-return 'Controls checks passed: production hero and loot tools, mouse/touch aim, cooldown, malformed markers, removal and cleanup.'
+clock+=1;delayed.Activated:Fire();heartbeat:Fire(0.1);assert(#shots==4,'Destroyed controller cannot send requests')
+return 'Controls checks passed: production hero/loot tools, mouse/touch/gamepad, shared server cooldown feedback, modal/chat/obby/safe-zone guards, malformed markers and cleanup.'
 `;
 const state = await LuauState.createAsync();
 try {

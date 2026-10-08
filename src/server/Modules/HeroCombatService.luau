@@ -48,7 +48,8 @@ local function liveCharacter(player)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local root = character and character:FindFirstChild("HumanoidRootPart")
-	if not character or not humanoid or humanoid.Health <= 0 or not root or not root:IsA("BasePart") then return nil end
+	if not character or not humanoid or not Rules.IsFinite(humanoid.Health) or humanoid.Health <= 0
+		or not root or not root:IsA("BasePart") then return nil end
 	return character, humanoid, root
 end
 
@@ -176,6 +177,7 @@ function HeroCombatService:_giveTool(player, definition, id)
 	tool.ToolTip = "Арена: нажмите или коснитесь для атаки"
 	tool:SetAttribute("HeroWeapon", id)
 	tool:SetAttribute("WeaponKind", definition.Kind)
+	tool:SetAttribute("AttackCooldown", definition.Cooldown)
 	local accent = colorFor(definition)
 	local handle = part(tool, "Handle", Vector3.new(0.35, 1.0, 0.35), CFrame.new(), Color3.fromRGB(28, 36, 54))
 	handle.Anchored = false
@@ -286,7 +288,12 @@ end
 function HeroCombatService:_targetLabel(record)
 	record.model:SetAttribute("Health", record.health)
 	record.model:SetAttribute("Alive", not record.dead)
-	record.label.Text = record.name .. "\n" .. math.ceil(record.health) .. " / " .. record.maxHealth
+	local phase = if record.boss then Rules.BossPhase(record.health, record.maxHealth) else 1
+	record.model:SetAttribute("Phase", phase)
+	record.label.Text = record.name .. (if record.boss then " · " .. phase .. "/3" else "") .. "\n" .. math.ceil(record.health) .. " / " .. record.maxHealth
+	if record.bar then record.bar.Size = UDim2.fromScale(math.clamp(record.health / record.maxHealth, 0, 1), 1) end
+	if record.renderedDead == record.dead then return end
+	record.renderedDead = record.dead
 	for _, object in ipairs(record.model:GetChildren()) do
 		if object:IsA("BasePart") then
 			object.Transparency = record.dead and 0.8 or 0
@@ -343,22 +350,46 @@ function HeroCombatService:_buildTargets()
 		model.PrimaryPart = chest
 		local billboard = Instance.new("BillboardGui")
 		billboard.Name = "HealthDisplay"
-		billboard.Size = UDim2.fromOffset(190, 54)
+		billboard.Size = UDim2.fromOffset(210, 84)
 		billboard.StudsOffset = Vector3.new(0, 4.3 * scale, 0)
 		billboard.AlwaysOnTop = true
 		billboard.MaxDistance = 130
 		billboard.Parent = chest
 		local label = Instance.new("TextLabel")
-		label.Size = UDim2.fromScale(1, 1)
+		label.Size = UDim2.new(1, 0, 0, 54)
 		label.BackgroundTransparency = 0.25
 		label.BackgroundColor3 = Color3.fromRGB(18, 27, 43)
-		label.TextColor3 = accent
+		label.TextColor3 = Color3.fromRGB(245, 245, 253)
 		label.TextStrokeTransparency = 0.6
 		label.Font = Enum.Font.GothamBold
 		label.TextSize = 16
 		label.Parent = billboard
+		local track = Instance.new("Frame")
+		track.Name = "HealthTrack"
+		track.Position = UDim2.new(0, 0, 0, 56)
+		track.Size = UDim2.new(1, 0, 0, 6)
+		track.BorderSizePixel = 0
+		track.BackgroundColor3 = Color3.fromRGB(41, 47, 62)
+		track.Parent = billboard
+		local fill = Instance.new("Frame")
+		fill.Name = "HealthFill"
+		fill.BorderSizePixel = 0
+		fill.BackgroundColor3 = if boss then Color3.fromRGB(232, 126, 87) else Color3.fromRGB(111, 211, 168)
+		fill.Parent = track
+		local stateLabel = Instance.new("TextLabel")
+		stateLabel.Name = "AttackState"
+		stateLabel.Position = UDim2.fromOffset(0, 64)
+		stateLabel.Size = UDim2.new(1, 0, 0, 20)
+		stateLabel.BackgroundTransparency = 0.2
+		stateLabel.BackgroundColor3 = Color3.fromRGB(18, 27, 43)
+		stateLabel.TextColor3 = Color3.fromRGB(255, 215, 158)
+		stateLabel.Text = "Патруль"
+		stateLabel.Font = Enum.Font.GothamBold
+		stateLabel.TextSize = 12
+		stateLabel.Parent = billboard
 		local record = {
-			model = model, center = chest, label = label, name = boss and "ГЛАВАРЬ БАНДЫ" or "Бандит квартала",
+			model = model, center = chest, label = label, bar = fill, stateLabel = stateLabel, name = boss and "ГЛАВАРЬ БАНДЫ" or "Бандит квартала",
+			boss = boss,
 			health = boss and 400 or 80, maxHealth = boss and 400 or 80,
 			coins = boss and 500 or 60, xp = boss and 200 or 40, respawn = boss and 30 or 8, dead = false,
 		}
@@ -382,8 +413,10 @@ function HeroCombatService:_buildTargets()
 	end
 end
 
-function HeroCombatService:_effect(kind, from, to, definition, id)
-	self.effectRemote:FireAllClients({ kind = kind, from = from, to = to, color = colorFor(definition), hero = id })
+function HeroCombatService:_effect(kind, from, to, definition, id, extra)
+	local payload = { kind = kind, from = from, to = to, color = colorFor(definition), hero = id }
+	for key, value in pairs(extra or {}) do payload[key] = value end
+	self.effectRemote:FireAllClients(payload)
 end
 
 function HeroCombatService:_damageTarget(player, profile, record, damage, origin, range)
@@ -393,10 +426,19 @@ function HeroCombatService:_damageTarget(player, profile, record, damage, origin
 	-- Урон, флаг смерти и награда идут без yield: один дрон не выдаст награду дважды.
 	local amount, killed = Rules.ApplyDamage(record, damage)
 	if amount <= 0 then return false end
+	local practiceChanged = profile.CombatPractice ~= true
+	profile.CombatPractice = true
+	self:_effect("hit", record.center.Position, record.center.Position, {Color = {255, 233, 152}}, "", {
+		amount = amount, actorUserId = player.UserId, target = record.model, targetKind = "npc",
+	})
 	self:_targetLabel(record)
 	if killed then
+		if record.boss then profile.BossDefeated = math.min(1000000000, (profile.BossDefeated or 0) + 1) end
 		local coins, xp = Rules.Reward(self.config, profile, record.coins, record.xp)
 		self.tycoon:SyncPlayer(player)
+		self:_effect("victory", record.center.Position, record.center.Position, {Color = {255, 210, 113}}, "", {
+			actorUserId = player.UserId, target = record.model, boss = record.boss == true,
+		})
 		self:_notify(player, record.name .. ": +" .. coins .. " монет, +" .. xp .. " XP!", "success")
 		task.delay(record.respawn, function()
 			if self.destroyed or self.targets[record.model] ~= record or not record.model.Parent then return end
@@ -405,6 +447,8 @@ function HeroCombatService:_damageTarget(player, profile, record, damage, origin
 			self:_targetLabel(record)
 			if self.enemyAI then self.enemyAI:Reset(record) end
 		end)
+	elseif practiceChanged then
+		self.tycoon:SyncPlayer(player)
 	end
 	return true
 end
@@ -412,7 +456,7 @@ end
 function HeroCombatService:_combatant(player)
 	local profile = self:_profile(player)
 	local character, humanoid, root = liveCharacter(player)
-	return { id = player.UserId, ready = profile ~= nil, optedIn = player:GetAttribute("ArenaCombatOptIn") == true,
+	return { id = player.UserId, ready = profile ~= nil, optedIn = player:GetAttribute("ArenaCombatOptIn") == true and player:GetAttribute("ObbyActive") ~= true,
 		alive = humanoid ~= nil, protected = character and character:FindFirstChildOfClass("ForceField") ~= nil,
 		position = root and root.Position }, humanoid, root
 end
@@ -423,8 +467,34 @@ function HeroCombatService:_damagePlayer(attacker, target, amount, origin, range
 	if not Rules.PvPAllowed(attackerData, targetData) or not root
 		or (root.Position - origin).Magnitude > range + 3 then return false end
 	-- Никаких наград за убийство игроков: нельзя фармить валюту вторым аккаунтом.
-	humanoid:TakeDamage(amount)
+	local applied = math.min(humanoid.Health, amount)
+	humanoid:TakeDamage(applied)
+	self:_effect("hit", root.Position, root.Position, {Color = {255, 145, 113}}, "", {
+		amount = applied, actorUserId = attacker.UserId, victimUserId = target.UserId, targetKind = "player",
+	})
+	self:_hurt(target, applied, origin)
 	return true
+end
+
+function HeroCombatService:_hurt(player, amount, from)
+	local _, _, root = liveCharacter(player)
+	-- Последний удар может уже убить Humanoid; позицию берём из персонажа без требования Health > 0.
+	root = root or (player.Character and player.Character:FindFirstChild("HumanoidRootPart"))
+	if not root or not root:IsA("BasePart") or player.Parent ~= self.players then return end
+	self.effectRemote:FireClient(player, {kind = "hurt", from = from, to = root.Position,
+		color = Color3.fromRGB(255, 96, 83), amount = amount, victimUserId = player.UserId})
+end
+
+function HeroCombatService:_styleHit(record, definition)
+	if not record or record.dead then return end
+	local style = definition.Style
+	local time = self.enemyAI and self.enemyAI.time or 0
+	if style == "spider" or style == "symbiote" or definition.Id == "thread_launcher" then
+		record.slowUntil = time + (if style == "symbiote" then 1.5 else 1.25)
+		record.slowFactor = if style == "symbiote" then 0.45 else 0.55
+	elseif style == "iron" or style == "iron_gold" or style == "thor" then
+		record.staggerUntil = time + (if style == "thor" then 0.25 elseif style == "iron_gold" then 0.18 else 0.12)
+	end
 end
 
 function HeroCombatService:_hitPlayer(partHit)
@@ -457,12 +527,13 @@ function HeroCombatService:_attack(player, aim)
 	if not direction or now < (self.nextAttackAt[player] or -math.huge) then return end
 	-- Смена оружия не сбрасывает общий cooldown игрока.
 	self.nextAttackAt[player] = now + definition.Cooldown
+	player:SetAttribute("AttackReadyAt", Workspace:GetServerTimeNow() + definition.Cooldown)
 	local parameters = RaycastParams.new()
 	parameters.FilterType = Enum.RaycastFilterType.Exclude
 	parameters.FilterDescendantsInstances = { character }
 	parameters.IgnoreWater = true
 	if definition.Kind == "slam" then
-		self:_effect("slam", root.Position, root.Position, definition, id)
+		self:_effect("slam", root.Position, root.Position, definition, id, {actorUserId = player.UserId, radius = definition.Range})
 		for _, record in pairs(self.targets) do
 			local offset = record.center.Position - origin
 			if not record.dead and offset.Magnitude <= definition.Range then
@@ -487,11 +558,15 @@ function HeroCombatService:_attack(player, aim)
 	else
 		local hit = Workspace:Raycast(origin, direction, parameters)
 		local endpoint = hit and hit.Position or origin + direction
-		self:_effect("beam", origin, endpoint, definition, id)
+		local style = definition.Style
+		local kind = if style == "spider" or style == "symbiote" or definition.Id == "thread_launcher" then "web"
+			elseif style == "iron" or style == "iron_gold" then "repulsor"
+			elseif style == "thor" then "lightning" else "beam"
+		self:_effect(kind, origin, endpoint, definition, id, {actorUserId = player.UserId})
 		if hit then
 			local record = self.targetParts[hit.Instance]
 			if record then
-				self:_damageTarget(player, profile, record, definition.Damage, origin, definition.Range)
+				if self:_damageTarget(player, profile, record, definition.Damage, origin, definition.Range) then self:_styleHit(record, definition) end
 			else
 				local target = self:_hitPlayer(hit.Instance)
 				if target then self:_damagePlayer(player, target, definition.Damage, origin, definition.Range) end

@@ -60,7 +60,7 @@ local UDim2={new=function(...) return {...} end,fromOffset=function() return {} 
 local UDim={new=function(...) return {...} end}
 local Vector2={new=function(x,y) return {X=x,Y=y} end}
 local Enum={Material={Metal='Metal',Neon='Neon',Glass='Glass',Fabric='Fabric',SmoothPlastic='SmoothPlastic'},SurfaceType={Smooth='Smooth'},
- NormalId={Front='Front',Back='Back'},SurfaceGuiSizingMode={FixedSize='FixedSize'},PartType={Ball='Ball'},
+ NormalId={Front='Front',Back='Back'},SurfaceGuiSizingMode={FixedSize='FixedSize'},PartType={Ball='Ball',Block='Block',Cylinder='Cylinder'},
  ZIndexBehavior={Sibling='Sibling'},
  Font={GothamBold='GothamBold'},RaycastFilterType={Exclude='Exclude'}}
 local RaycastParams={new=function() return {} end}
@@ -124,6 +124,7 @@ function methods:GetPlayerFromCharacter(character)
 end
 local RunService={Heartbeat=signal()}
 local Workspace=Instance.new('Workspace')
+function methods:GetServerTimeNow() return clock+1000 end
 local rayQueue={}
 local rayCount=0
 function methods:Raycast(origin,direction,parameters)
@@ -162,6 +163,7 @@ function notices:FireClient(player,payload) table.insert(self.messages,{player,p
 local skill={OnServerEvent=signal()}
 local effects={messages={}}
 function effects:FireAllClients(payload) table.insert(self.messages,payload) end
+function effects:FireClient(player,payload) table.insert(self.messages,payload) end
 local function makePart(parent,name,pos,size)
  local obj=Instance.new('Part');obj.Name=name;obj.Size=size or vector(2,2,1);obj.CFrame=frame(pos);obj.Parent=parent;return obj
 end
@@ -221,7 +223,8 @@ check('server rejects missing profile dead player invalid aim and unequipped/fak
  local initial=rayCount
  a:SetAttribute('DataReady',false);fire();assert(rayCount==initial)
  a:SetAttribute('DataReady',true)
- humanoid.Health=0;fire();assert(rayCount==initial);humanoid.Health=100
+ humanoid.Health=0;fire();assert(rayCount==initial)
+ humanoid.Health=0/0;fire();assert(rayCount==initial);humanoid.Health=100
  fire({X=0,Y=4,Z=-100});fire(vector(0/0,0,0));fire(vector(math.huge,0,0));assert(rayCount==initial)
  local issued=service.issuedTools[a];issued.Parent=a:FindFirstChildOfClass('Backpack');fire();assert(rayCount==initial)
  local fake=Instance.new('Tool');fake:SetAttribute('HeroWeapon','arachna');fake.Parent=a.Character;fire();assert(rayCount==initial)
@@ -231,7 +234,11 @@ check('server rejects missing profile dead player invalid aim and unequipped/fak
  root.Position=vector(148,3,-102);fire();assert(rayCount==initial);root.Position=vector(0,3,-100)
 end)
 check('actual attack uses catalog damage and cooldown; exactly one kill reward',function()
- queueHit(bot.center);fire();assert(bot.health==62)
+ assert(profile.CombatPractice~=true)
+ queueHit(bot.center);fire();assert(bot.health==62 and profile.CombatPractice==true)
+ assert(a:GetAttribute('AttackReadyAt')==clock+1000+Config.Heroes[1].Cooldown)
+ assert(bot.slowUntil==service.enemyAI.time+1.25 and bot.slowFactor==0.55)
+ assert(effects.messages[#effects.messages].kind=='hit' and effects.messages[#effects.messages].amount==18)
  local calls=rayCount
  queueHit(bot.center);skill.OnServerEvent:Fire(a,bot.center.Position);assert(rayCount==calls)
  table.clear(rayQueue)
@@ -276,6 +283,20 @@ check('changing equipment does not bypass previous weapon cooldown',function()
  clock+=0.4;assert(service:Equip(a,'arachna'))
  local calls=rayCount;skill.OnServerEvent:Fire(a,bot.center.Position);assert(rayCount==calls and service.nextAttackAt[a]==readyAt)
 end)
+check('every unlocked hero emits distinct accepted attack feedback with the actual server cooldown',function()
+ local variants={arachna='web',nightweaver='web',volt='repulsor',titan='slam',frost='lightning',helios='repulsor'}
+ local oldHero,oldRebirths,oldFloor=profile.EquippedHero,profile.Rebirths,profile.Floor
+ profile.Rebirths=2;profile.Floor=3;profile.EquippedWeapon='';root.Position=vector(0,3,-100)
+ for _,hero in ipairs(Config.Heroes) do
+  profile.EquippedHero=hero.Id;service:Refresh(a);table.clear(rayQueue);clock+=2
+  skill.OnServerEvent:Fire(a,vector(0,4,-130))
+  local payload=effects.messages[#effects.messages]
+  assert(payload.kind==variants[hero.Id] and payload.actorUserId==a.UserId,hero.Id)
+  assert(a:GetAttribute('AttackReadyAt')==clock+1000+hero.Cooldown)
+  assert(service.issuedTools[a]:GetAttribute('AttackCooldown')==hero.Cooldown)
+ end
+ profile.EquippedHero=oldHero;profile.Rebirths=oldRebirths;profile.Floor=oldFloor;service:Refresh(a)
+end)
 check('slam requires line of sight and does not damage targets outside radius',function()
  profile.EquippedHero='titan';service:Refresh(a)
  root.Position=vector(-30,3,-100)
@@ -299,6 +320,7 @@ check('PvP requires both opt in arena and ignores ForceField or dead targets',fu
  local field=Instance.new('ForceField');field.Parent=b.Character;assert(not service:_damagePlayer(a,b,18,root.Position,100));field:Destroy()
  bhumanoid.Health=0;assert(not service:_damagePlayer(a,b,18,root.Position,100));bhumanoid.Health=100
  b:SetAttribute('DataReady',false);assert(not service:_damagePlayer(a,b,18,root.Position,100));b:SetAttribute('DataReady',true)
+ b:SetAttribute('ObbyActive',true);assert(not service:_damagePlayer(a,b,18,root.Position,100));b:SetAttribute('ObbyActive',false)
  local coins,xp,kills=profile.Coins,profile.XP,profile.EnemiesDefeated
  queueHit(broot);fire();assert(bhumanoid.Health==82)
  assert(profile.Coins==coins and profile.XP==xp and profile.EnemiesDefeated==kills)
@@ -351,7 +373,13 @@ check('stepping on costume pad equips, rejects remote touches and throttles repe
  clock+=2;locked.Touched:Fire(root);assert(profile.EquippedHero=='arachna','Locked costume rejected')
  profile.Floor=3;clock+=2;locked.Touched:Fire(root);assert(profile.EquippedHero=='volt')
  root.Position=vector(42,30,-12);clock+=2;pad.Touched:Fire(root);assert(profile.EquippedHero=='volt','Flying over pad is not stepping')
+ root.Position=vector(42,3,-12);humanoid.Health=0/0;clock+=2;pad.Touched:Fire(root)
+ assert(profile.EquippedHero=='volt','NaN health never equips a costume');humanoid.Health=100
+ pad.Parent=Workspace;clock+=2;pad.Touched:Fire(root);assert(profile.EquippedHero=='volt','Moved pad is no longer a gallery costume')
+ pad.Parent=nil;clock+=2;servicePads:_equip(a,pad,'arachna');assert(profile.EquippedHero=='volt','Detached pad cannot equip')
+ pad.Parent=first
  servicePads:Destroy();root.Position=vector(42,3,-12);clock+=2;pad.Touched:Fire(root);assert(profile.EquippedHero=='volt')
+ servicePads:_equip(a,pad,'arachna');assert(profile.EquippedHero=='volt','Stale callback after Destroy cannot equip')
  campus:Destroy();root.Position=vector(0,3,-100)
 end)
 local ai=service.enemyAI
@@ -402,6 +430,88 @@ check('AI pauses during shutdown and boss attack can kill',function()
  ai:_step(boss,0.1);assert(boss.pending and humanoid.Health==25)
  ai.time+=1;ai:_step(boss,0.1);assert(humanoid.Health==0)
  humanoid.Health=100;root.Position=vector(0,3,-100)
+end)
+check('boss phase thresholds and fixed telegraphs give a real dodge window',function()
+ assert(Rules.BossPhase(400,400)==1 and Rules.BossPhase(260,400)==2 and Rules.BossPhase(120,400)==3)
+ assert(Rules.SegmentDistance(vector(2,99,-110),vector(0,3,-100),vector(0,3,-120))==2)
+ assert(Rules.SegmentDistance(vector(0,3,-125),vector(0,3,-100),vector(0,3,-120))==5)
+ assert(Rules.SegmentDistance({},vector(0,3,0),vector(0,3,1))==math.huge)
+ readyEnemy()
+ local boss=service.targets[service.targetFolder:FindFirstChild('ArenaSentinel')]
+ boss.dead=false;boss.health=250;ai:Reset(boss);boss.nextAttack=0;boss.attackCycle=1
+ root.Position=vector(2,3,-140)
+ ai:_step(boss,0.1)
+ assert(boss.pending.kind=='shockwave' and boss.pending.at==ai.time+1.2 and humanoid.Health==100)
+ local saved=boss.pending.from
+ assert(effects.messages[#effects.messages].kind=='boss_warning' and effects.messages[#effects.messages].radius==10)
+ assert(boss.warning.Transparency==0.35 and boss.warning.CanQuery==false)
+ assert(service:_damageTarget(a,profile,boss,1,root.Position,100))
+ assert(boss.warning.Transparency==0.35,'A hit must not hide the essential server telegraph when client effects are Off')
+ root.Position=vector(15,3,-140);ai.time+=1.3;ai:_step(boss,0.1)
+ assert(humanoid.Health==100,'Leaving locked circle dodges the wave')
+ assert(effects.messages[#effects.messages].kind=='boss_impact' and effects.messages[#effects.messages].from==saved)
+ boss.health=100;ai:Reset(boss);boss.nextAttack=0;boss.attackCycle=2;root.Position=vector(2,3,-140)
+ ai:_step(boss,0.1);assert(boss.pending.kind=='rush')
+ local destination=boss.pending.to
+ root.Position=vector(0,3,-131);ai.time+=1.2;ai:_step(boss,0.1)
+ assert(humanoid.Health==100 and boss.center.Position.X==destination.X,'Sidestepping fixed rush line avoids damage')
+ ai:Reset(boss);boss.nextAttack=0;boss.attackCycle=2;root.Position=vector(2,3,-140)
+ ai:_step(boss,0.1);ai.time+=1.2;ai:_step(boss,0.1)
+ assert(humanoid.Health==72,'Rush uses server base damage and fixed line')
+ assert(effects.messages[#effects.messages].kind=='hurt' and effects.messages[#effects.messages].amount==28)
+ boss.health=boss.maxHealth;ai:Reset(boss);humanoid.Health=100;root.Position=vector(0,3,-100)
+end)
+check('hero hit styles alter only NPC pursuit and server cooldown survives death and respawn',function()
+ readyEnemy();root.Position=vector(-10,3,-100)
+ local otherWalkSpeed=bhumanoid.WalkSpeed
+ service:_styleHit(bot,Config.GetHero('arachna'));ai:_step(bot,1)
+ assert(math.abs(bot.center.Position.X-(-30+Config.Enemies.Bandit.Speed*0.55))<0.001)
+ service:_styleHit(bot,Config.GetHero('frost'))
+ local position=bot.center.Position;ai:_step(bot,0.1);assert(bot.center.Position==position,'Lightning stagger pauses pursuit briefly')
+ ai.time+=0.3;ai:_step(bot,0.1);assert(bot.center.Position.X>position.X)
+ assert(bhumanoid.WalkSpeed==otherWalkSpeed,'Web crowd control never modifies other players')
+ root.Position=vector(0,3,-100);profile.EquippedHero='arachna';profile.EquippedWeapon='';service:Refresh(a)
+ clock+=2;skill.OnServerEvent:Fire(a,bot.center.Position);local nextAttack=service.nextAttackAt[a]
+ a.CharacterAdded:Fire(a.Character);a:SetAttribute('ArenaCombatOptIn',true)
+ assert(service.nextAttackAt[a]==nextAttack and a:GetAttribute('AttackReadyAt')==nextAttack+1000)
+end)
+check('boss reward and achievement count cannot repeat on dead target',function()
+ local boss=service.targets[service.targetFolder:FindFirstChild('ArenaSentinel')]
+ boss.dead=false;boss.health=10;profile.BossDefeated=0;root.Position=vector(0,3,-140)
+ local before=profile.EnemiesDefeated
+ assert(service:_damageTarget(a,profile,boss,99,root.Position,100))
+ assert(profile.BossDefeated==1 and profile.EnemiesDefeated==before+1)
+ assert(effects.messages[#effects.messages].kind=='victory' and effects.messages[#effects.messages].boss==true)
+ local coins=profile.Coins;assert(not service:_damageTarget(a,profile,boss,99,root.Position,100))
+ assert(profile.BossDefeated==1 and profile.Coins==coins)
+ root.Position=vector(0,3,-100)
+end)
+check('boss area attacks recheck walls, opt-in, ForceField, obby and target readiness at impact',function()
+ local boss=service.targets[service.targetFolder:FindFirstChild('ArenaSentinel')]
+ for _,reason in ipairs({'wall','protected','optout','notready','obby','outside'}) do
+  readyEnemy();boss.dead=false;boss.health=250;ai:Reset(boss);boss.nextAttack=0;boss.attackCycle=1
+  root.Position=vector(2,3,-140);ai:_step(boss,0.1);assert(boss.pending.kind=='shockwave')
+  local field,wall
+  if reason=='wall' then wall=makePart(Workspace,'BossWall',vector(1,4,-140));queueHit(wall)
+  elseif reason=='protected' then field=Instance.new('ForceField');field.Parent=a.Character
+  elseif reason=='optout' then a:SetAttribute('ArenaCombatOptIn',false)
+  elseif reason=='notready' then a:SetAttribute('DataReady',false)
+  elseif reason=='obby' then a:SetAttribute('ObbyActive',true)
+  elseif reason=='outside' then root.Position=vector(2,3,-70) end
+  ai.time+=1.3;ai:_step(boss,0.1);assert(humanoid.Health==100,reason)
+  if field then field:Destroy() end;if wall then wall:Destroy() end
+ end
+ boss.health=boss.maxHealth;ai:Reset(boss);readyEnemy()
+end)
+check('NPC collision guard and separation preserve bounded server movement',function()
+ readyEnemy();root.Position=vector(-10,3,-100)
+ local wall=makePart(Workspace,'SolidObstacle',vector(-29,4,-100));wall.CanCollide=true
+ queueHit(wall);ai:_step(bot,1);assert(bot.center.Position.X==-30,'Server pursuit does not cross a collidable obstacle')
+ wall:Destroy()
+ local other=service.targets[service.targetFolder:FindFirstChild('TrainingBot3')]
+ local old=other.center.Position;other.model:PivotTo(frame(vector(-27,old.Y,-100)))
+ ai:_step(bot,0.1);assert(bot.center.Position.X>-30 and bot.center.Position.X<=-30+Config.Enemies.Bandit.Speed*0.1+0.000001)
+ ai:Reset(other);root.Position=vector(0,3,-100)
 end)
 check('appearance removal restores base colors and cleanup cancels delayed respawn',function()
  profile.EquippedHero='arachna';service:Refresh(a)

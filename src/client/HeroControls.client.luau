@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local ACTION_NAME = "TycoonHeroSkill"
@@ -38,6 +39,7 @@ local connections = {}
 local characterConnections = {}
 local tools = {}
 local cameraConnection = nil
+local cooldownElapsed = 0
 
 local function disconnectAll(list)
 	for _, connection in ipairs(list) do
@@ -109,6 +111,25 @@ local function aimPosition(forceCenter)
 	return isFiniteVector(position) and position or nil
 end
 
+local function modalOpen()
+	local gui = player:FindFirstChildOfClass("PlayerGui")
+	local modal = gui and gui:GetAttribute("QuarterModalOpen")
+	return (type(modal) == "string" and modal ~= "") or UserInputService:GetFocusedTextBox() ~= nil
+end
+
+local function remainingCooldown()
+	local readyAt = player:GetAttribute("AttackReadyAt")
+	if type(readyAt) ~= "number" or readyAt ~= readyAt or math.abs(readyAt) == math.huge then return 0 end
+	return math.max(0, readyAt - Workspace:GetServerTimeNow())
+end
+
+local function updateActionTitle()
+	if not actionBound then return end
+	local remaining = remainingCooldown()
+	ContextActionService:SetTitle(ACTION_NAME, if remaining > 0 then string.format("%.1f с", remaining)
+		elseif player:GetAttribute("ArenaCombatOptIn") ~= true then "Арена" else "Атака")
+end
+
 local function requestSkill(forceCenter)
 	if not alive or not skillRemote or not skillRemote.Parent then
 		return
@@ -116,6 +137,9 @@ local function requestSkill(forceCenter)
 	if not isHeroTool(equippedTool) or equippedTool.Parent ~= character then
 		return
 	end
+	if modalOpen() or player:GetAttribute("DataReady") ~= true
+		or player:GetAttribute("ArenaCombatOptIn") ~= true or player:GetAttribute("ObbyActive") == true
+		or remainingCooldown() > 0 then return end
 	-- Это удобство для управления. Настоящая защита работает на сервере.
 	local now = os.clock()
 	if now - lastRequest < LOCAL_COOLDOWN then
@@ -156,6 +180,7 @@ local function refreshAction()
 		return
 	end
 	ContextActionService:BindAction(ACTION_NAME, function(_, inputState, inputObject)
+		if modalOpen() then return Enum.ContextActionResult.Pass end
 		if inputState == Enum.UserInputState.Begin then
 			local center = inputObject and (
 				inputObject.UserInputType == Enum.UserInputType.Touch
@@ -164,8 +189,8 @@ local function refreshAction()
 			requestSkill(center)
 		end
 		return Enum.ContextActionResult.Sink
-	end, true, Enum.KeyCode.Q, Enum.KeyCode.ButtonX)
-	ContextActionService:SetTitle(ACTION_NAME, "Навык")
+	end, true, Enum.KeyCode.Q, Enum.KeyCode.ButtonX, Enum.KeyCode.ButtonR2)
+	updateActionTitle()
 	positionAction()
 end
 
@@ -233,6 +258,15 @@ end
 table.insert(connections, stopEvent.Event:Connect(cleanup))
 table.insert(connections, script.Destroying:Connect(cleanup))
 table.insert(connections, runtime.Destroying:Connect(cleanup))
+table.insert(connections, player:GetAttributeChangedSignal("AttackReadyAt"):Connect(updateActionTitle))
+table.insert(connections, player:GetAttributeChangedSignal("ArenaCombatOptIn"):Connect(updateActionTitle))
+table.insert(connections, RunService.Heartbeat:Connect(function(seconds)
+	if not actionBound then return end
+	cooldownElapsed += seconds
+	if cooldownElapsed < 0.1 then return end
+	cooldownElapsed = 0
+	updateActionTitle()
+end))
 local function bindCamera()
 	if cameraConnection then cameraConnection:Disconnect() end
 	local camera = Workspace.CurrentCamera
